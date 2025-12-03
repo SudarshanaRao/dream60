@@ -223,12 +223,11 @@ const AuctionCard = ({
     if (!localAuction.isWinner || localAuction.prizeClaimStatus !== 'PENDING') return;
 
     const updateTimer = () => {
-      // ✅ Use UTC time consistently - no timezone conversion
-      const now = Date.now(); // Current time in UTC milliseconds
+      // ✅ Current time in UTC milliseconds
+      const now = Date.now();
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && localAuction.claimWindowStartedAt) {
-        // ✅ Direct getTime() - no Date object creation
         const windowStart = localAuction.claimWindowStartedAt.getTime();
         const diff = windowStart - now;
         
@@ -242,7 +241,6 @@ const AuctionCard = ({
       
       // ✅ Show time left until deadline when it's user's turn
       if (localAuction.claimDeadline) {
-        // ✅ Direct getTime() - no Date object creation
         const deadline = localAuction.claimDeadline.getTime();
         const diff = deadline - now;
 
