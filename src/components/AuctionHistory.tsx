@@ -228,8 +228,10 @@ const AuctionCard = ({
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && localAuction.claimWindowStartedAt) {
-        // ✅ Get milliseconds directly from Date object (no timezone conversion)
-        const windowStart = localAuction.claimWindowStartedAt.getTime();
+        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
+        const windowStart = typeof localAuction.claimWindowStartedAt === 'string' 
+          ? Date.parse(localAuction.claimWindowStartedAt)
+          : localAuction.claimWindowStartedAt.getTime();
         const diff = windowStart - now;
         
         if (diff > 0) {
@@ -242,8 +244,10 @@ const AuctionCard = ({
       
       // ✅ Show time left until deadline when it's user's turn
       if (localAuction.claimDeadline) {
-        // ✅ Get milliseconds directly from Date object (no timezone conversion)
-        const deadline = localAuction.claimDeadline.getTime();
+        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
+        const deadline = typeof localAuction.claimDeadline === 'string'
+          ? Date.parse(localAuction.claimDeadline)
+          : localAuction.claimDeadline.getTime();
         const diff = deadline - now;
 
         if (diff <= 0) {

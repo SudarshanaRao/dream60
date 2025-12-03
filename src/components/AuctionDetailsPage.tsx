@@ -177,8 +177,10 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && auction.claimWindowStartedAt) {
-        // ✅ Get milliseconds directly from Date object (no timezone conversion)
-        const windowStart = auction.claimWindowStartedAt.getTime();
+        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
+        const windowStart = typeof auction.claimWindowStartedAt === 'string' 
+          ? Date.parse(auction.claimWindowStartedAt)
+          : auction.claimWindowStartedAt.getTime();
         const diff = windowStart - now;
         
         if (diff > 0) {
@@ -191,8 +193,10 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       
       // ✅ Show time left until deadline when it's user's turn
       if (auction.claimDeadline) {
-        // ✅ Get milliseconds directly from Date object (no timezone conversion)
-        const deadline = auction.claimDeadline.getTime();
+        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
+        const deadline = typeof auction.claimDeadline === 'string'
+          ? Date.parse(auction.claimDeadline)
+          : auction.claimDeadline.getTime();
         const diff = deadline - now;
 
         if (diff <= 0) {
