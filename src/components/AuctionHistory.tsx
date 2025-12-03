@@ -223,15 +223,17 @@ const AuctionCard = ({
     if (!localAuction.isWinner || localAuction.prizeClaimStatus !== 'PENDING') return;
 
     const updateTimer = () => {
-      const now = new Date().getTime();
+      // ✅ Use UTC time consistently - no timezone conversion
+      const now = Date.now(); // Current time in UTC milliseconds
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && localAuction.claimWindowStartedAt) {
+        // ✅ Parse as UTC time directly
         const windowStart = new Date(localAuction.claimWindowStartedAt).getTime();
         const diff = windowStart - now;
         
         if (diff > 0) {
-          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const minutes = Math.floor(diff / (1000 * 60));
           const seconds = Math.floor((diff % (1000 * 60)) / 1000);
           setTimeLeft(`Opens in ${minutes}m ${seconds}s`);
           return;
@@ -240,6 +242,7 @@ const AuctionCard = ({
       
       // ✅ Show time left until deadline when it's user's turn
       if (localAuction.claimDeadline) {
+        // ✅ Parse deadline as UTC time directly
         const deadline = new Date(localAuction.claimDeadline).getTime();
         const diff = deadline - now;
 
@@ -248,7 +251,8 @@ const AuctionCard = ({
           return;
         }
 
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        // ✅ Calculate remaining time in minutes and seconds
+        const minutes = Math.floor(diff / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setTimeLeft(`${minutes}m ${seconds}s`);
       }

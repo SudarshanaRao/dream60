@@ -172,15 +172,17 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
     if (!auction.isWinner || auction.prizeClaimStatus !== 'PENDING') return;
 
     const updateTimer = () => {
-      const now = new Date().getTime();
+      // ✅ Use UTC time consistently - no timezone conversion
+      const now = Date.now(); // Current time in UTC milliseconds
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && auction.claimWindowStartedAt) {
+        // ✅ Parse as UTC time directly
         const windowStart = new Date(auction.claimWindowStartedAt).getTime();
         const diff = windowStart - now;
         
         if (diff > 0) {
-          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const minutes = Math.floor(diff / (1000 * 60));
           const seconds = Math.floor((diff % (1000 * 60)) / 1000);
           setTimeLeft(`Opens in ${minutes}m ${seconds}s`);
           return;
@@ -189,6 +191,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       
       // ✅ Show time left until deadline when it's user's turn
       if (auction.claimDeadline) {
+        // ✅ Parse deadline as UTC time directly
         const deadline = new Date(auction.claimDeadline).getTime();
         const diff = deadline - now;
 
@@ -197,7 +200,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
           return;
         }
 
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        // ✅ Calculate remaining time in minutes and seconds
+        const minutes = Math.floor(diff / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setTimeLeft(`${minutes}m ${seconds}s`);
       }
