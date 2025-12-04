@@ -1165,15 +1165,16 @@ export default function App() {
 
     fetchCurrentAuctionId();
     
-    // ✅ CRITICAL: Poll every 5 seconds when round is active to show real-time updates
-    // Poll every 10 seconds otherwise
-    const pollInterval = currentAuction.boxes.some(
+    // ✅ CRITICAL FIX: Poll every 5 seconds when round is active, 10 seconds otherwise
+    // Use a stable check that doesn't depend on boxes array reference
+    const hasActiveRound = currentAuction.boxes.some(
       box => box.type === 'round' && box.isOpen
-    ) ? 5000 : 10000;
+    );
+    const pollInterval = hasActiveRound ? 5000 : 10000;
     
     const interval = setInterval(fetchCurrentAuctionId, pollInterval);
     return () => clearInterval(interval);
-  }, [currentUser?.id, currentAuction.userHasPaidEntry, justLoggedIn, forceRefetchTrigger, currentAuction.boxes]); // ✅ Add currentAuction.boxes to adjust poll rate
+  }, [currentUser?.id, currentAuction.userHasPaidEntry, justLoggedIn, forceRefetchTrigger]); // ✅ REMOVED currentAuction.boxes from dependencies
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -1851,6 +1852,7 @@ export default function App() {
             <PrizeShowcase
               currentPrize={currentAuction as any}
               isLoggedIn={!!currentUser}
+              serverTime={serverTime} // ✅ Pass server time from parent
               onPayEntry={(_boxId, totalEntryFee) => {
                 if (!currentUser) return;
                 setShowEntrySuccess({

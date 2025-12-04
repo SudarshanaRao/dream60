@@ -276,17 +276,38 @@ const AuctionCard = ({
       return;
     }
 
+    // ✅ CRITICAL: Validate all required data before proceeding
+    if (!localAuction.hourlyAuctionId) {
+      toast.error('Missing auction information. Please refresh and try again.');
+      return;
+    }
+
+    if (!localAuction.lastRoundBidAmount || localAuction.lastRoundBidAmount <= 0) {
+      toast.error('Invalid bid amount. Please contact support.');
+      return;
+    }
+
+    if (!userEmail) {
+      toast.error('Email not found. Please update your profile.');
+      return;
+    }
+
+    const userName = localStorage.getItem('user_name') || user.username;
+    const userMobile = localStorage.getItem('user_mobile') || '';
+    
+    if (!userMobile) {
+      toast.error('Mobile number not found. Please update your profile.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      const userName = localStorage.getItem('user_name') || user.username;
-      const userMobile = localStorage.getItem('user_mobile') || '9999999999';
-
       initiatePrizeClaimPayment(
         {
           userId: user.id,
-          hourlyAuctionId: localAuction.hourlyAuctionId!,
-          amount: localAuction.lastRoundBidAmount || 0,
+          hourlyAuctionId: localAuction.hourlyAuctionId,
+          amount: localAuction.lastRoundBidAmount,
           currency: 'INR',
           username: userName,
         },

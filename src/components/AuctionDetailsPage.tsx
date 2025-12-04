@@ -222,8 +222,24 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       return;
     }
 
-    if (!auction.hourlyAuctionId || !auction.lastRoundBidAmount) {
-      toast.error('Invalid auction data');
+    // ✅ CRITICAL: Validate all required data before proceeding
+    if (!auction.hourlyAuctionId) {
+      toast.error('Missing auction information. Please refresh and try again.');
+      return;
+    }
+
+    if (!auction.lastRoundBidAmount || auction.lastRoundBidAmount <= 0) {
+      toast.error('Invalid bid amount. Please contact support.');
+      return;
+    }
+
+    if (!userEmail) {
+      toast.error('Email not found. Please update your profile.');
+      return;
+    }
+
+    if (!userMobile) {
+      toast.error('Mobile number not found. Please update your profile.');
       return;
     }
 
