@@ -1196,8 +1196,8 @@ export default function App() {
     // ✅ Clear hourly auction ID
     setCurrentHourlyAuctionId(null);
     
-    setCurrentPage("login");
-    window.history.pushState({}, '', '/login');
+    setCurrentPage("game");
+    window.history.pushState({}, '', '/');
   };
 
   const handleShowLogin = () => {
