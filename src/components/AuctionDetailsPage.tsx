@@ -242,7 +242,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
           name: userName,
           email: userEmail,
           contact: userMobile,
-          upiId: auction.claimUpiId || userEmail,
+          upiId: userEmail,
         },
         async (response) => {
           console.log('Prize claim payment successful:', response);

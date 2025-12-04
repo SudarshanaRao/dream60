@@ -61,8 +61,7 @@ export const usePrizeClaimPayment = () => {
   const initiatePrizeClaimPayment = useCallback(
     async (
       payload: CreatePrizeClaimOrderPayload,
-      userDetails: { name: string; email: string; contact: string },
-      upiId: string,
+      userDetails: { name: string; email: string; contact: string; upiId: string },
       onSuccess: (response: VerifyResponse) => void,
       onFailure: (error: string) => void
     ) => {
@@ -71,7 +70,7 @@ export const usePrizeClaimPayment = () => {
         setPaymentStatus('idle');
 
         // 1. Create prize claim order on backend
-        const orderResponse = await fetch(API_ENDPOINTS.razorpay.createPrizeClaimOrder, {
+        const orderResponse = await fetch(API_ENDPOINTS.razorpay.prizeClaimCreateOrder, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -123,7 +122,7 @@ export const usePrizeClaimPayment = () => {
                     razorpay_payment_id: response.razorpay_payment_id,
                     razorpay_signature: response.razorpay_signature,
                     username: actualUserDetails.name,
-                    upiId: upiId,
+                    upiId: userDetails.upiId,
                   }),
                 }
               );
@@ -162,7 +161,7 @@ export const usePrizeClaimPayment = () => {
           prefill: {
             name: actualUserDetails.name,
             email: actualUserDetails.email,
-            contact: actualUserDetails.contact, // ✅ Now using actual mobile from database
+            contact: actualUserDetails.contact,
           },
 
           theme: {
