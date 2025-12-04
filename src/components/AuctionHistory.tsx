@@ -879,13 +879,14 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
             myRank: auction.finalRank || 0,
             auctionStartTime: auction.TimeSlot || '',
             auctionEndTime: auction.completedAt 
-              ? new Date(auction.completedAt).toLocaleTimeString('en-IN', { 
-                  hour: 'numeric', 
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'Asia/Kolkata'
-                })
-              : '',
+  ? new Date(new Date(auction.completedAt).getTime() - (5 * 60 + 30) * 60 * 1000)
+      .toLocaleTimeString('en-IN', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
+      })
+  : '',
             boxes: [],
             entryFeePaid: auction.entryFeePaid,
             totalAmountBid: auction.totalAmountBid,
