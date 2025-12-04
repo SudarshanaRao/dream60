@@ -57,13 +57,20 @@ interface ServerTime {
   utcOffset: string;
 }
 
-// ✅ Fetch server time from API
+// ✅ Server time offset state
+let serverTimeOffset: number = 0;
+
+// ✅ Fetch server time from API - only once on mount
 const fetchServerTime = async (): Promise<ServerTime | null> => {
   try {
     const response = await fetch(API_ENDPOINTS.serverTime);
     const data = await response.json();
     
     if (data.success && data.data) {
+      // Calculate offset between server time and local time
+      const localTime = Date.now();
+      serverTimeOffset = data.data.timestamp - localTime;
+      console.log('✅ Server time offset calculated:', serverTimeOffset, 'ms');
       return data.data;
     }
     return null;
@@ -71,6 +78,24 @@ const fetchServerTime = async (): Promise<ServerTime | null> => {
     console.error('Error fetching server time:', error);
     return null;
   }
+};
+
+// ✅ Get current server time using offset (no API call needed)
+const getCurrentServerTime = (): ServerTime => {
+  const now = Date.now() + serverTimeOffset;
+  const date = new Date(now);
+  
+  return {
+    timestamp: now,
+    iso: date.toISOString(),
+    hour: date.getUTCHours(),
+    minute: date.getUTCMinutes(),
+    second: date.getUTCSeconds(),
+    date: date.toISOString().split('T')[0],
+    time: date.toTimeString().split(' ')[0],
+    timezone: 'UTC',
+    utcOffset: '+00:00'
+  };
 };
 
 const getCurrentAuctionSlot = (serverTime: ServerTime | null) => {
@@ -271,22 +296,35 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // ✅ Fetch server time on mount and update every second
+  // ✅ Fetch server time ONCE on mount, then use local offset
   useEffect(() => {
-    const updateServerTime = async () => {
+    const initializeServerTime = async () => {
       const time = await fetchServerTime();
       if (time) {
         setServerTime(time);
       }
     };
 
-    // Initial fetch
-    updateServerTime();
+    // Initial fetch to calculate offset
+    initializeServerTime();
 
-    // Update every second to keep time in sync
-    const interval = setInterval(updateServerTime, 1000);
+    // Update local state every second using calculated offset (no API call)
+    const interval = setInterval(() => {
+      setServerTime(getCurrentServerTime());
+    }, 1000);
 
-    return () => clearInterval(interval);
+    // Optionally refresh server time every 30 seconds to correct drift
+    const syncInterval = setInterval(async () => {
+      const time = await fetchServerTime();
+      if (time) {
+        setServerTime(time);
+      }
+    }, 30000); // 30 seconds
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(syncInterval);
+    };
   }, []);
 
   const [currentUser, setCurrentUser] = useState<{
