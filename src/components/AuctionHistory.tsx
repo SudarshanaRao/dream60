@@ -831,18 +831,10 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
   const lostAuctions = history.filter(a => a.status === 'lost');
   const { winRate, totalSpent, totalWon, netGain } = stats;
   
-  // ✅ NEW: Seamless page reload on first mount
+  // ✅ Fetch auction history on mount
   useEffect(() => {
-    const hasReloadedHistory = sessionStorage.getItem('hasReloadedHistory');
-    if (!hasReloadedHistory) {
-      sessionStorage.setItem('hasReloadedHistory', 'true');
-      window.location.reload();
-      return; // Don't execute anything else during reload
-    }
-    
-    // ✅ Call fetchAuctionHistory after reload check
     fetchAuctionHistory();
-  }, []); // Only run once on mount
+  }, []);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -946,10 +938,6 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAuctionHistory();
-  }, [user.id, user.username]);
 
   // Loading state
   if (isLoading) {

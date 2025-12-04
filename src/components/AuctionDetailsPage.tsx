@@ -78,18 +78,10 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   const userEmail = localStorage.getItem('user_email') || localStorage.getItem('email') || '';
   const userMobile = localStorage.getItem('user_mobile') || localStorage.getItem('mobile') || '';
 
-  // ✅ NEW: Seamless page reload on first mount
+  // ✅ Fetch detailed data on mount
   useEffect(() => {
-    const hasReloadedDetails = sessionStorage.getItem('hasReloadedDetails');
-    if (!hasReloadedDetails) {
-      sessionStorage.setItem('hasReloadedDetails', 'true');
-      window.location.reload();
-      return; // Don't execute anything else during reload
-    }
-    
-    // ✅ Call fetchDetailedData after reload check
     fetchDetailedData();
-  }, []); // Only run once on mount
+  }, []);
 
   // ✅ NEW: Determine if current user is eligible to claim based on priority system
   const isCurrentlyEligibleToClaim = () => {
