@@ -846,7 +846,12 @@ export default function App() {
   // Fetch current hourly auction ID when user is logged in and has paid entry
   useEffect(() => {
     const fetchCurrentAuctionId = async () => {
-      if (!currentUser?.id || !currentAuction.userHasPaidEntry) return;
+      // ✅ CRITICAL FIX: Also fetch when user just logged in (before entry payment)
+      // This ensures fresh data is loaded and no stale bids from previous users are shown
+      if (!currentUser?.id) return;
+      
+      // Only fetch if user has paid entry OR just logged in
+      if (!currentAuction.userHasPaidEntry && !justLoggedIn) return;
       
       // ✅ Reset justLoggedIn flag after triggering refetch
       if (justLoggedIn) {
@@ -1122,10 +1127,15 @@ export default function App() {
 
     fetchCurrentAuctionId();
     
-    // Poll every 10 seconds to keep auction data updated
-    const interval = setInterval(fetchCurrentAuctionId, 10000);
+    // ✅ CRITICAL: Poll every 5 seconds when round is active to show real-time updates
+    // Poll every 10 seconds otherwise
+    const pollInterval = currentAuction.boxes.some(
+      box => box.type === 'round' && box.isOpen
+    ) ? 5000 : 10000;
+    
+    const interval = setInterval(fetchCurrentAuctionId, pollInterval);
     return () => clearInterval(interval);
-  }, [currentUser?.id, currentAuction.userHasPaidEntry, justLoggedIn, forceRefetchTrigger]); // ✅ Add triggers as dependencies
+  }, [currentUser?.id, currentAuction.userHasPaidEntry, justLoggedIn, forceRefetchTrigger, currentAuction.boxes]); // ✅ Add currentAuction.boxes to adjust poll rate
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -1200,6 +1210,9 @@ export default function App() {
       
       // ✅ Clear hourly auction ID to force fresh fetch
       setCurrentHourlyAuctionId(null);
+      
+      // ✅ Force immediate refetch by incrementing trigger
+      setForceRefetchTrigger(prev => prev + 1);
 
       setCurrentPage("game");
       window.history.pushState({}, '', '/');
