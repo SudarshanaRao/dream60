@@ -374,6 +374,7 @@ const createDailyAuction = async () => {
  * Creates individual HourlyAuction documents for each config in DailyAuction
  * Also updates the dailyAuctionConfig with hourlyAuctionId references
  * ✅ NOW pre-calculates round startedAt and completedAt times based on TimeSlot
+ * ✅ USES UPSERT to handle duplicate keys gracefully (update if exists, create if not)
  */
 const createHourlyAuctions = async (dailyAuction) => {
   try {
@@ -391,6 +392,7 @@ const createHourlyAuctions = async (dailyAuction) => {
     }
     
     const createdAuctions = [];
+    const updatedAuctions = [];
     const errors = [];
     
     for (let i = 0; i < configs.length; i++) {
@@ -425,16 +427,38 @@ const createHourlyAuctions = async (dailyAuction) => {
           rounds: roundTimes, // ✅ Use pre-calculated round times
         };
         
-        // Create the hourly auction
-        const hourlyAuction = await HourlyAuction.create(hourlyAuctionData);
-        createdAuctions.push(hourlyAuction);
+        // ✅ CRITICAL FIX: Use findOneAndUpdate with upsert to handle duplicates
+        // This will update if exists, create if not - no duplicate key errors
+        const hourlyAuction = await HourlyAuction.findOneAndUpdate(
+          { 
+            dailyAuctionId: dailyAuction.dailyAuctionId,
+            TimeSlot: config.TimeSlot 
+          },
+          { $set: hourlyAuctionData },
+          { 
+            upsert: true,  // Create if doesn't exist
+            new: true,     // Return updated document
+            setDefaultsOnInsert: true  // Apply schema defaults on insert
+          }
+        );
+        
+        // Check if this was an update or insert
+        const isNew = !createdAuctions.some(a => a.hourlyAuctionId === hourlyAuction.hourlyAuctionId) &&
+                      !updatedAuctions.some(a => a.hourlyAuctionId === hourlyAuction.hourlyAuctionId);
+        
+        if (isNew) {
+          createdAuctions.push(hourlyAuction);
+          console.log(`  ✅ Created hourly auction (UPCOMING): ${hourlyAuction.auctionName} at ${hourlyAuction.TimeSlot} (${hourlyAuction.hourlyAuctionCode})`);
+        } else {
+          updatedAuctions.push(hourlyAuction);
+          console.log(`  🔄 Updated existing hourly auction: ${hourlyAuction.auctionName} at ${hourlyAuction.TimeSlot} (${hourlyAuction.hourlyAuctionCode})`);
+        }
         
         // Update the dailyAuctionConfig with the hourlyAuctionId
         dailyAuction.dailyAuctionConfig[i].hourlyAuctionId = hourlyAuction.hourlyAuctionId;
         
-        console.log(`  ✅ Created hourly auction (UPCOMING): ${hourlyAuction.auctionName} at ${hourlyAuction.TimeSlot} (${hourlyAuction.hourlyAuctionCode})`);
       } catch (error) {
-        console.error(`  ❌ Error creating hourly auction for ${config.auctionName}:`, error.message);
+        console.error(`  ❌ Error creating/updating hourly auction for ${config.auctionName}:`, error.message);
         errors.push({
           auctionName: config.auctionName,
           error: error.message,
@@ -445,14 +469,15 @@ const createHourlyAuctions = async (dailyAuction) => {
     // Save the updated dailyAuction with hourlyAuctionId references
     await dailyAuction.save();
     
-    console.log(`🎉 [SCHEDULER] Hourly auction creation completed. Created: ${createdAuctions.length}, Errors: ${errors.length}`);
+    console.log(`🎉 [SCHEDULER] Hourly auction creation completed. Created: ${createdAuctions.length}, Updated: ${updatedAuctions.length}, Errors: ${errors.length}`);
     
     return {
       success: true,
-      message: 'Hourly auctions created successfully (all UPCOMING with pre-calculated round times)',
+      message: 'Hourly auctions created/updated successfully (all UPCOMING with pre-calculated round times)',
       created: createdAuctions.length,
+      updated: updatedAuctions.length,
       errors: errors.length > 0 ? errors : undefined,
-      auctions: createdAuctions,
+      auctions: [...createdAuctions, ...updatedAuctions],
     };
   } catch (error) {
     console.error('❌ [SCHEDULER] Error in createHourlyAuctions:', error);
