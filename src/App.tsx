@@ -1167,7 +1167,11 @@ export default function App() {
         }
       });
       
-      console.log('✅ User session and Razorpay data cleared from localStorage');
+      // ✅ CRITICAL FIX: Clear session storage flags to allow page reload for next user
+      sessionStorage.removeItem('hasReloadedHistory');
+      sessionStorage.removeItem('hasReloadedDetails');
+      
+      console.log('✅ User session, Razorpay data, and session storage flags cleared');
     } catch (error) {
       console.error("Error clearing user session:", error);
     }
