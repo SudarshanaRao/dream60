@@ -575,6 +575,12 @@ export default function App() {
 
   const [currentHourlyAuctionId, setCurrentHourlyAuctionId] = useState<string | null>(null);
   const [isPlacingBid, setIsPlacingBid] = useState(false);
+  // ✅ NEW: Track previous round to detect round changes
+  const [previousRound, setPreviousRound] = useState<number>(1);
+  // ✅ NEW: Force refetch trigger
+  const [forceRefetchTrigger, setForceRefetchTrigger] = useState<number>(0);
+  // ✅ NEW: Track if user just logged in to trigger immediate refresh
+  const [justLoggedIn, setJustLoggedIn] = useState<boolean>(false);
 
   // Check for existing session on app initialization
   useEffect(() => {
@@ -629,6 +635,71 @@ export default function App() {
   }, [currentPage]);
 
   // ✅ REMOVED: useEffect that called fetchAndSetUser - no longer needed
+
+  // ✅ NEW: Detect round changes and trigger refetch
+  useEffect(() => {
+    if (!serverTime || !currentUser?.id || !currentAuction.userHasPaidEntry) return;
+    
+    const currentRound = getCurrentRoundByTime(serverTime);
+    
+    // Check if round has changed
+    if (currentRound !== previousRound) {
+      console.log(`🔄 Round changed from ${previousRound} to ${currentRound} - triggering auction data refresh`);
+      setPreviousRound(currentRound);
+      
+      // Trigger immediate refetch by incrementing the trigger
+      setForceRefetchTrigger(prev => prev + 1);
+      
+      toast.info(`Round ${currentRound} Started`, {
+        description: 'Auction data refreshed with latest information',
+        duration: 3000,
+      });
+    }
+  }, [serverTime, currentUser?.id, currentAuction.userHasPaidEntry, previousRound]);
+
+  // ✅ NEW: Fetch basic auction info immediately when user logs in (before entry payment)
+  useEffect(() => {
+    const fetchBasicAuctionInfo = async () => {
+      if (!currentUser?.id || currentAuction.userHasPaidEntry) return;
+      
+      // ✅ Only fetch on login event
+      if (!justLoggedIn) return;
+      
+      try {
+        console.log('🔄 Fetching basic auction info after login...');
+        const response = await fetch(API_ENDPOINTS.scheduler.liveAuction);
+        if (!response.ok) return;
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          const liveAuction = result.data;
+          
+          console.log('📊 [LOGIN REFRESH] Basic auction info loaded:', {
+            'Prize Name': liveAuction.auctionName,
+            'Prize Value': liveAuction.prizeValue,
+            'Total Participants': liveAuction.participants?.length || 0
+          });
+          
+          // Update only basic auction info
+          setCurrentAuction(prev => ({
+            ...prev,
+            prize: liveAuction.auctionName || prev.prize,
+            prizeValue: liveAuction.prizeValue || prev.prizeValue,
+            totalParticipants: liveAuction.participants?.length || prev.totalParticipants,
+          }));
+          
+          // Reset flag after fetch
+          setJustLoggedIn(false);
+        }
+      } catch (error) {
+        console.error('Error fetching basic auction info:', error);
+        setJustLoggedIn(false);
+      }
+    };
+    
+    fetchBasicAuctionInfo();
+  }, [currentUser?.id, justLoggedIn, currentAuction.userHasPaidEntry]);
 
   // Timer to automatically open boxes based on time schedule
   useEffect(() => {
@@ -776,6 +847,12 @@ export default function App() {
   useEffect(() => {
     const fetchCurrentAuctionId = async () => {
       if (!currentUser?.id || !currentAuction.userHasPaidEntry) return;
+      
+      // ✅ Reset justLoggedIn flag after triggering refetch
+      if (justLoggedIn) {
+        console.log('🔄 User just logged in - forcing immediate auction data refresh');
+        setJustLoggedIn(false);
+      }
       
       try {
         const response = await fetch(API_ENDPOINTS.scheduler.liveAuction);
@@ -1048,7 +1125,7 @@ export default function App() {
     // Poll every 10 seconds to keep auction data updated
     const interval = setInterval(fetchCurrentAuctionId, 10000);
     return () => clearInterval(interval);
-  }, [currentUser?.id, currentAuction.userHasPaidEntry]);
+  }, [currentUser?.id, currentAuction.userHasPaidEntry, justLoggedIn, forceRefetchTrigger]); // ✅ Add triggers as dependencies
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -1099,6 +1176,9 @@ export default function App() {
       
       console.log('✅ User logged in successfully:', mappedUser.username);
 
+      // ✅ Set flag to trigger immediate auction data refresh
+      setJustLoggedIn(true);
+
       // ✅ Reset auction state when logging in to ensure fresh start
       setCurrentAuction(prev => ({
         ...prev,
@@ -1118,7 +1198,7 @@ export default function App() {
         })
       }));
       
-      // ✅ Clear hourly auction ID
+      // ✅ Clear hourly auction ID to force fresh fetch
       setCurrentHourlyAuctionId(null);
 
       setCurrentPage("game");
