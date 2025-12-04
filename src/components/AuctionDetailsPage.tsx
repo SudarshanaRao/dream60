@@ -179,7 +179,10 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       if (isInWaitingQueue() && auction.claimWindowStartedAt) {
         // ✅ Already UTC timestamp (number), no conversion needed
         const windowStart = auction.claimWindowStartedAt;
-        const diff = windowStart - now;
+        let diff = windowStart - now;
+        
+        // ✅ SUBTRACT 330 MINUTES (330 * 60 * 1000 milliseconds)
+        diff = diff - (330 * 60 * 1000);
         
         if (diff > 0) {
           const minutes = Math.floor(diff / (1000 * 60));
@@ -193,7 +196,10 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       if (auction.claimDeadline) {
         // ✅ Already UTC timestamp (number), no conversion needed
         const deadline = auction.claimDeadline;
-        const diff = deadline - now;
+        let diff = deadline - now;
+
+        // ✅ SUBTRACT 330 MINUTES (330 * 60 * 1000 milliseconds)
+        diff = diff - (330 * 60 * 1000);
 
         if (diff <= 0) {
           setTimeLeft('EXPIRED');

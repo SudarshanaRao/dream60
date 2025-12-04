@@ -230,7 +230,10 @@ const AuctionCard = ({
       if (isInWaitingQueue() && localAuction.claimWindowStartedAt) {
         // ✅ Already UTC timestamp (number), no conversion needed
         const windowStart = localAuction.claimWindowStartedAt;
-        const diff = windowStart - now;
+        let diff = windowStart - now;
+        
+        // ✅ SUBTRACT 330 MINUTES (330 * 60 * 1000 milliseconds)
+        diff = diff - (330 * 60 * 1000);
         
         if (diff > 0) {
           const minutes = Math.floor(diff / (1000 * 60));
@@ -244,7 +247,10 @@ const AuctionCard = ({
       if (localAuction.claimDeadline) {
         // ✅ Already UTC timestamp (number), no conversion needed
         const deadline = localAuction.claimDeadline;
-        const diff = deadline - now;
+        let diff = deadline - now;
+
+        // ✅ SUBTRACT 330 MINUTES (330 * 60 * 1000 milliseconds)
+        diff = diff - (330 * 60 * 1000);
 
         if (diff <= 0) {
           setTimeLeft('EXPIRED');
