@@ -63,8 +63,8 @@ interface AuctionHistoryItem {
   isWinner?: boolean;
   finalRank?: number;
   prizeClaimStatus?: 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'NOT_APPLICABLE';
-  claimDeadline?: Date;
-  claimedAt?: Date;
+  claimDeadline?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
+  claimedAt?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
   claimUpiId?: string;
   remainingProductFees?: number;
   remainingFeesPaid?: boolean;
@@ -75,7 +75,7 @@ interface AuctionHistoryItem {
   claimedBy?: string;
   claimedByRank?: number;
   // ✅ NEW: Priority claim system fields
-  claimWindowStartedAt?: Date; // When this winner's claim window starts
+  claimWindowStartedAt?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
   currentEligibleRank?: number; // Which rank can currently claim
 }
 
@@ -197,8 +197,8 @@ const AuctionCard = ({
     const isMyRankEligible = localAuction.finalRank === localAuction.currentEligibleRank;
     
     // Also check deadline hasn't passed
-    const now = new Date();
-    const beforeDeadline = !localAuction.claimDeadline || now < new Date(localAuction.claimDeadline);
+    const now = Date.now();
+    const beforeDeadline = !localAuction.claimDeadline || now < localAuction.claimDeadline;
     
     return isMyRankEligible && beforeDeadline;
   };
@@ -228,10 +228,8 @@ const AuctionCard = ({
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && localAuction.claimWindowStartedAt) {
-        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
-        const windowStart = typeof localAuction.claimWindowStartedAt === 'string' 
-          ? Date.parse(localAuction.claimWindowStartedAt)
-          : localAuction.claimWindowStartedAt.getTime();
+        // ✅ Already UTC timestamp (number), no conversion needed
+        const windowStart = localAuction.claimWindowStartedAt;
         const diff = windowStart - now;
         
         if (diff > 0) {
@@ -244,10 +242,8 @@ const AuctionCard = ({
       
       // ✅ Show time left until deadline when it's user's turn
       if (localAuction.claimDeadline) {
-        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
-        const deadline = typeof localAuction.claimDeadline === 'string'
-          ? Date.parse(localAuction.claimDeadline)
-          : localAuction.claimDeadline.getTime();
+        // ✅ Already UTC timestamp (number), no conversion needed
+        const deadline = localAuction.claimDeadline;
         const diff = deadline - now;
 
         if (diff <= 0) {
@@ -881,7 +877,7 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
             myBid: auction.totalAmountSpent || 0,
             winningBid: auction.totalAmountSpent || 0,
             status: auction.isWinner ? 'won' : 'lost',
-            totalParticipants: auction.totalParticipants || 0, // This should now correctly display 5
+            totalParticipants: auction.totalParticipants || 0,
             myRank: auction.finalRank || 0,
             auctionStartTime: auction.TimeSlot || '',
             auctionEndTime: auction.completedAt 
@@ -901,8 +897,9 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
             isWinner: auction.isWinner,
             finalRank: auction.finalRank,
             prizeClaimStatus: auction.prizeClaimStatus,
-            claimDeadline: auction.claimDeadline ? new Date(auction.claimDeadline) : undefined,
-            claimedAt: auction.claimedAt ? new Date(auction.claimedAt) : undefined,
+            // ✅ CRITICAL FIX: Convert datetime strings to UTC timestamps immediately
+            claimDeadline: auction.claimDeadline ? Date.parse(auction.claimDeadline) : undefined,
+            claimedAt: auction.claimedAt ? Date.parse(auction.claimedAt) : undefined,
             claimUpiId: auction.claimUpiId,
             remainingProductFees: auction.remainingProductFees,
             remainingFeesPaid: auction.remainingFeesPaid,
@@ -910,8 +907,8 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
             prizeAmountWon: auction.prizeAmountWon,
             claimedBy: auction.claimedBy,
             claimedByRank: auction.claimedByRank,
-            // ✅ NEW: Priority claim system fields
-            claimWindowStartedAt: auction.claimWindowStartedAt ? new Date(auction.claimWindowStartedAt) : undefined,
+            // ✅ NEW: Priority claim system fields - converted to UTC timestamps
+            claimWindowStartedAt: auction.claimWindowStartedAt ? Date.parse(auction.claimWindowStartedAt) : undefined,
             currentEligibleRank: auction.currentEligibleRank,
           };
         });

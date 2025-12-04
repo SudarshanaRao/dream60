@@ -44,8 +44,8 @@ interface AuctionDetailsData {
   isWinner?: boolean;
   finalRank?: number;
   prizeClaimStatus?: 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'NOT_APPLICABLE';
-  claimDeadline?: Date;
-  claimedAt?: Date;
+  claimDeadline?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
+  claimedAt?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
   lastRoundBidAmount?: number;
   prizeAmountWon?: number;
   winnersAnnounced?: boolean;
@@ -54,7 +54,7 @@ interface AuctionDetailsData {
   claimedByRank?: number;
   // NEW: Priority claim fields
   currentEligibleRank?: number; // Which rank (1, 2, or 3) can currently claim
-  claimWindowStartedAt?: Date; // When current rank's 30-min window started
+  claimWindowStartedAt?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
 }
 
 interface AuctionDetailsPageProps {
@@ -177,10 +177,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       
       // ✅ NEW: If in waiting queue, show time until claim window opens
       if (isInWaitingQueue() && auction.claimWindowStartedAt) {
-        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
-        const windowStart = typeof auction.claimWindowStartedAt === 'string' 
-          ? Date.parse(auction.claimWindowStartedAt)
-          : auction.claimWindowStartedAt.getTime();
+        // ✅ Already UTC timestamp (number), no conversion needed
+        const windowStart = auction.claimWindowStartedAt;
         const diff = windowStart - now;
         
         if (diff > 0) {
@@ -193,10 +191,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       
       // ✅ Show time left until deadline when it's user's turn
       if (auction.claimDeadline) {
-        // ✅ Parse ISO string directly to UTC milliseconds (no timezone conversion)
-        const deadline = typeof auction.claimDeadline === 'string'
-          ? Date.parse(auction.claimDeadline)
-          : auction.claimDeadline.getTime();
+        // ✅ Already UTC timestamp (number), no conversion needed
+        const deadline = auction.claimDeadline;
         const diff = deadline - now;
 
         if (diff <= 0) {
