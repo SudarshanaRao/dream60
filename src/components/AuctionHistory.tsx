@@ -316,22 +316,36 @@ const AuctionCard = ({
               }),
             });
 
-            if (claimResponse.ok) {
+            if (!claimResponse.ok) {
+              const errorText = await claimResponse.text();
+              console.error('❌ Failed to update claim status:', errorText);
+              throw new Error(`Failed to update claim status: ${claimResponse.status}`);
+            }
+
+            // ✅ Check content type before parsing JSON
+            const contentType = claimResponse.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
               const claimData = await claimResponse.json();
               console.log('✅ Prize claim data saved:', claimData);
-              
-              // Update local state immediately
-              setLocalAuction(prev => ({
-                ...prev,
-                prizeClaimStatus: 'CLAIMED',
-                claimedAt: new Date(),
-                claimedBy: userName,
-                claimUpiId: userEmail,
-                claimedByRank: prev.finalRank
-              }));
+            } else {
+              console.warn('⚠️ Response is not JSON, but request was successful');
             }
+            
+            // Update local state immediately
+            setLocalAuction(prev => ({
+              ...prev,
+              prizeClaimStatus: 'CLAIMED',
+              claimedAt: new Date(),
+              claimedBy: userName,
+              claimUpiId: userEmail,
+              claimedByRank: prev.finalRank
+            }));
           } catch (error) {
             console.error('Failed to update claim status:', error);
+            // Don't block user experience - payment was successful
+            toast.warning('Prize claimed but status update pending', {
+              description: 'Your payment was successful. Status will update shortly.'
+            });
           }
           
           toast.success('🎉 Prize Claimed Successfully!', {
