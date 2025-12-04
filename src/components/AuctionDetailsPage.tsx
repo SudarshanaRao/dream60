@@ -280,34 +280,46 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               console.warn('⚠️ Response is not JSON, but request was successful');
             }
             
-            // Update local state
+            // ✅ Update local state immediately - no page reload
             setAuction(prev => ({
               ...prev,
               prizeClaimStatus: 'CLAIMED',
-              claimedAt: new Date(),
+              claimedAt: Date.now(),
               claimedBy: userName,
               claimUpiId: userEmail,
               claimedByRank: auction.finalRank
             }));
+            
+            toast.success('🎉 Prize Claimed Successfully!', {
+              description: `Amazon voucher details will be sent to ${userEmail}`,
+              duration: 5000,
+            });
+            
+            setShowClaimForm(false);
+            
+            // ✅ Refresh auction details data in background without reload
+            setTimeout(() => {
+              fetchDetailedData();
+            }, 1000);
           } catch (error) {
             console.error('Failed to update claim status:', error);
-            // Don't block user experience - payment was successful
             toast.warning('Prize claimed but status update pending', {
               description: 'Your payment was successful. Status will update shortly.'
             });
+            
+            // ✅ Still update local state for better UX
+            setAuction(prev => ({
+              ...prev,
+              prizeClaimStatus: 'CLAIMED',
+              claimedAt: Date.now(),
+              claimedBy: userName,
+              claimUpiId: userEmail,
+              claimedByRank: auction.finalRank
+            }));
+            setShowClaimForm(false);
           }
           
-          toast.success('🎉 Prize Claimed Successfully!', {
-            description: `Amazon voucher details will be sent to ${userEmail}`,
-            duration: 5000,
-          });
           setIsProcessing(false);
-          setShowClaimForm(false);
-          
-          // Refresh page data after a short delay to show success state
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
         },
         (error) => {
           console.error('Prize claim payment failed:', error);
