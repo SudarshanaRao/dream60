@@ -258,6 +258,12 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
     if (!auctionEndTime) return;
 
     const updateTimer = () => {
+      // ✅ CRITICAL FIX: If winners are announced, show 00:00:00 immediately
+      if (liveAuctionData?.winnersAnnounced) {
+        setTimeLeft('00:00:00');
+        return;
+      }
+
       // ✅ Use calculated server time instead of browser local time
       const now = getCurrentServerTime();
       const distance = auctionEndTime.getTime() - now;
@@ -277,7 +283,7 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
     const timer = setInterval(updateTimer, 1000);
 
     return () => clearInterval(timer);
-  }, [auctionEndTime, serverTime]);
+  }, [auctionEndTime, serverTime, liveAuctionData?.winnersAnnounced]);
 
   const handlePayEntry = () => {
     if (!isLoggedIn || liveAuctions.length === 0) return;
