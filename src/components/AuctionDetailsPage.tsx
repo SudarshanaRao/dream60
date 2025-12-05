@@ -72,11 +72,53 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   
   const { initiatePrizeClaimPayment, loading: globalPaymentLoading } = usePrizeClaimPayment();
   
-  // Get user info
-  const userId = localStorage.getItem('user_id') || '';
-  const userName = localStorage.getItem('user_name') || 'User';
-  const userEmail = localStorage.getItem('user_email') || localStorage.getItem('email') || '';
-  const userMobile = localStorage.getItem('user_mobile') || localStorage.getItem('mobile') || '';
+  // Get user info - state for dynamic updates
+  const [userInfo, setUserInfo] = useState({
+    userId: localStorage.getItem('user_id') || '',
+    userName: localStorage.getItem('user_name') || 'User',
+    userEmail: localStorage.getItem('user_email') || localStorage.getItem('email') || '',
+    userMobile: localStorage.getItem('user_mobile') || localStorage.getItem('mobile') || '',
+  });
+
+  // ✅ Fetch user data from backend if mobile is missing
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userInfo.userMobile && userInfo.userId) {
+        try {
+          console.log('📱 Mobile number not found in localStorage, fetching from backend...');
+          const response = await fetch(`${API_ENDPOINTS.user.profile}?userId=${userInfo.userId}`);
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+              const mobile = result.data.mobile || result.data.phone || result.data.contact || '';
+              const name = result.data.name || userInfo.userName;
+              const email = result.data.email || userInfo.userEmail;
+              
+              console.log('✅ User data fetched from backend:', { name, email, mobile });
+              
+              // Update state
+              setUserInfo(prev => ({
+                ...prev,
+                userName: name,
+                userEmail: email,
+                userMobile: mobile,
+              }));
+              
+              // Also update localStorage for future use
+              if (mobile) localStorage.setItem('user_mobile', mobile);
+              if (name) localStorage.setItem('user_name', name);
+              if (email) localStorage.setItem('user_email', email);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching user data:', error);
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, [userInfo.userId]);
 
   // ✅ Fetch detailed data on mount
   useEffect(() => {
@@ -118,7 +160,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
 
   // Fetch detailed auction data from API
   const fetchDetailedData = async () => {
-    if (!auction.hourlyAuctionId || !userId) {
+    if (!auction.hourlyAuctionId || !userInfo.userId) {
       setIsLoading(false);
       return;
     }
@@ -127,7 +169,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       setIsLoading(true);
       const queryString = buildQueryString({
         hourlyAuctionId: auction.hourlyAuctionId,
-        userId: userId
+        userId: userInfo.userId
       });
       const response = await fetch(
         `${API_ENDPOINTS.scheduler.auctionDetails}${queryString}`
@@ -233,13 +275,33 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       return;
     }
 
-    if (!userEmail) {
+    if (!userInfo.userEmail) {
       toast.error('Email not found. Please update your profile.');
       return;
     }
 
-    if (!userMobile) {
-      toast.error('Mobile number not found. Please update your profile.');
+    // ✅ NEW: Enhanced mobile number validation with retry
+    if (!userInfo.userMobile) {
+      toast.error('Mobile number not found. Attempting to fetch from server...');
+      
+      try {
+        const response = await fetch(`${API_ENDPOINTS.user.profile}?userId=${userInfo.userId}`);
+        if (response.ok) {
+          const result = await response.json();
+          const mobile = result.data?.mobile || result.data?.phone || result.data?.contact;
+          
+          if (mobile) {
+            setUserInfo(prev => ({ ...prev, userMobile: mobile }));
+            localStorage.setItem('user_mobile', mobile);
+            toast.success('Mobile number retrieved successfully! Click "Pay Now" again.');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch mobile:', error);
+      }
+      
+      toast.error('Mobile number not found. Please update your profile with a valid mobile number.');
       return;
     }
 
@@ -248,17 +310,17 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
     try {
       initiatePrizeClaimPayment(
         {
-          userId,
+          userId: userInfo.userId,
           hourlyAuctionId: auction.hourlyAuctionId,
           amount: auction.lastRoundBidAmount,
           currency: 'INR',
-          username: userName,
+          username: userInfo.userName,
         },
         {
-          name: userName,
-          email: userEmail,
-          contact: userMobile,
-          upiId: userEmail,
+          name: userInfo.userName,
+          email: userInfo.userEmail,
+          contact: userInfo.userMobile,
+          upiId: userInfo.userEmail,
         },
         async (response) => {
           console.log('Prize claim payment successful:', response);
@@ -272,9 +334,9 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               },
               body: JSON.stringify({
                 hourlyAuctionId: auction.hourlyAuctionId,
-                userId: userId,
-                claimedBy: userName,
-                claimedByEmail: auction.claimUpiId || userEmail,
+                userId: userInfo.userId,
+                claimedBy: userInfo.userName,
+                claimedByEmail: auction.claimUpiId || userInfo.userEmail,
                 claimedAt: new Date().toISOString(),
                 prizeClaimStatus: 'CLAIMED',
                 claimedByRank: auction.finalRank
@@ -301,13 +363,13 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               ...prev,
               prizeClaimStatus: 'CLAIMED',
               claimedAt: Date.now(),
-              claimedBy: userName,
-              claimUpiId: userEmail,
+              claimedBy: userInfo.userName,
+              claimUpiId: userInfo.userEmail,
               claimedByRank: auction.finalRank
             }));
             
             toast.success('🎉 Prize Claimed Successfully!', {
-              description: `Amazon voucher details will be sent to ${userEmail}`,
+              description: `Amazon voucher details will be sent to ${userInfo.userEmail}`,
               duration: 5000,
             });
             
@@ -328,8 +390,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               ...prev,
               prizeClaimStatus: 'CLAIMED',
               claimedAt: Date.now(),
-              claimedBy: userName,
-              claimUpiId: userEmail,
+              claimedBy: userInfo.userName,
+              claimUpiId: userInfo.userEmail,
               claimedByRank: auction.finalRank
             }));
             setShowClaimForm(false);
@@ -701,7 +763,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
                             </Label>
                             <Input
                               type="email"
-                              value={userEmail}
+                              value={userInfo.userEmail}
                               disabled
                               className="bg-white/70 border-purple-300 text-purple-900 font-medium cursor-not-allowed"
                             />
@@ -754,7 +816,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
             )}
 
             {/* Claimed Status */}
-            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId === userEmail && (
+            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId === userInfo.userEmail && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -792,7 +854,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
                             Amazon Voucher Delivered
                           </p>
                           <p className="text-xs text-green-700 mb-2">
-                            Your prize worth ₹{auction.prizeValue.toLocaleString('en-IN')} has been sent to <span className="font-semibold">{userEmail}</span>
+                            Your prize worth ₹{auction.prizeValue.toLocaleString('en-IN')} has been sent to <span className="font-semibold">{userInfo.userEmail}</span>
                           </p>
                           {auction.claimedAt && (
                             <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
@@ -815,7 +877,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
             )}
 
             {/* Prize claimed by another winner */}
-            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId && auction.claimUpiId !== userEmail && (
+            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId && auction.claimUpiId !== userInfo.userEmail && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
