@@ -129,6 +129,11 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   const isCurrentlyEligibleToClaim = () => {
     if (!auction.isWinner || auction.prizeClaimStatus !== 'PENDING') return false;
     
+    // ✅ NEW: If someone with better rank already claimed, not user's turn anymore
+    if (auction.claimedByRank && auction.finalRank && auction.claimedByRank < auction.finalRank) {
+      return false; // Prize already claimed by someone with better rank
+    }
+    
     // ✅ STRICT MODE: Require currentEligibleRank to be set (no fallback for old data)
     if (!auction.currentEligibleRank || !auction.finalRank) return false;
     
@@ -139,6 +144,11 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   // ✅ NEW: Check if user is in waiting queue (winner but not their turn yet)
   const isInWaitingQueue = () => {
     if (!auction.isWinner || auction.prizeClaimStatus !== 'PENDING') return false;
+    
+    // ✅ NEW: If someone with better rank already claimed, not in waiting queue anymore
+    if (auction.claimedByRank && auction.finalRank && auction.claimedByRank < auction.finalRank) {
+      return false; // Prize already claimed by someone with better rank
+    }
     
     // If no priority system, no queue
     if (!auction.currentEligibleRank || !auction.finalRank) return false;
@@ -151,6 +161,18 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   const getQueuePosition = () => {
     if (!auction.finalRank || !auction.currentEligibleRank) return 0;
     return auction.finalRank - auction.currentEligibleRank;
+  };
+  
+  // ✅ NEW: Check if prize was claimed by someone with better rank than current user
+  const isPrizeClaimedByBetterRank = () => {
+    if (!auction.isWinner) return false;
+    
+    // Check if someone claimed and their rank is better (lower number) than mine
+    if (auction.claimedByRank && auction.finalRank) {
+      return auction.claimedByRank < auction.finalRank;
+    }
+    
+    return false;
   };
 
   // Scroll to top when component mounts

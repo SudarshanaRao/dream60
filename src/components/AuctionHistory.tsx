@@ -180,6 +180,11 @@ const AuctionCard = ({
   const isInWaitingQueue = () => {
     if (!localAuction.isWinner || localAuction.prizeClaimStatus !== 'PENDING') return false;
     
+    // ✅ NEW: If someone with better rank already claimed, not in waiting queue anymore
+    if (localAuction.claimedByRank && localAuction.finalRank && localAuction.claimedByRank < localAuction.finalRank) {
+      return false; // Prize already claimed by someone with better rank
+    }
+    
     // ✅ CRITICAL: Must have currentEligibleRank to determine waiting queue
     if (!localAuction.currentEligibleRank || !localAuction.finalRank) {
       return false; // If no currentEligibleRank, can't determine waiting status
@@ -192,6 +197,11 @@ const AuctionCard = ({
   // ✅ NEW: Check if it's currently user's turn to claim
   const isCurrentlyMyTurn = () => {
     if (!localAuction.isWinner || localAuction.prizeClaimStatus !== 'PENDING') return false;
+    
+    // ✅ NEW: If someone with better rank already claimed, not user's turn anymore
+    if (localAuction.claimedByRank && localAuction.finalRank && localAuction.claimedByRank < localAuction.finalRank) {
+      return false; // Prize already claimed by someone with better rank
+    }
     
     // ✅ CRITICAL: Must have currentEligibleRank to determine turn
     if (!localAuction.currentEligibleRank || !localAuction.finalRank) {
@@ -206,6 +216,18 @@ const AuctionCard = ({
     const beforeDeadline = !localAuction.claimDeadline || now < localAuction.claimDeadline;
     
     return isMyRankEligible && beforeDeadline;
+  };
+
+  // ✅ NEW: Check if prize was claimed by someone with better rank than current user
+  const isPrizeClaimedByBetterRank = () => {
+    if (!localAuction.isWinner) return false;
+    
+    // Check if someone claimed and their rank is better (lower number) than mine
+    if (localAuction.claimedByRank && localAuction.finalRank) {
+      return localAuction.claimedByRank < localAuction.finalRank;
+    }
+    
+    return false;
   };
 
   // Get rank suffix and emoji
