@@ -285,7 +285,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       toast.error('Mobile number not found. Attempting to fetch from server...');
       
       try {
-        const response = await fetch(`${API_ENDPOINTS.user.profile}?userId=${userInfo.userId}`);
+        const response = await fetch(`${API_ENDPOINTS.user.profile}?user_id=${userInfo.userId}`);
         if (response.ok) {
           const result = await response.json();
           const mobile = result.data?.mobile || result.data?.phone || result.data?.contact;
