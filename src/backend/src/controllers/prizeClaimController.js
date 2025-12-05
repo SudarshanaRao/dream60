@@ -109,10 +109,37 @@ const submitPrizeClaim = async (req, res) => {
       {
         $set: {
           prizeClaimStatus: 'EXPIRED',
-          claimNotes: `Prize claimed by rank ${updatedEntry.finalRank} winner before their turn`
+          claimNotes: `Prize claimed by rank ${updatedEntry.finalRank} winner before their turn`,
+          claimedBy: updatedEntry.username,
+          claimedByRank: updatedEntry.finalRank,
+          claimedAt: updatedEntry.claimedAt
         }
       }
     );
+    
+    // ✅ NEW: Immediately update currentEligibleRank to next rank (no delay)
+    const nextRankToUpdate = updatedEntry.finalRank + 1;
+    if (nextRankToUpdate <= 3) {
+      const nextWinnerUpdate = await AuctionHistory.updateOne(
+        {
+          hourlyAuctionId,
+          finalRank: nextRankToUpdate,
+          isWinner: true,
+          prizeClaimStatus: 'PENDING'
+        },
+        {
+          $set: {
+            currentEligibleRank: nextRankToUpdate,
+            claimWindowStartedAt: new Date(),
+            claimDeadline: new Date(Date.now() + 30 * 60 * 1000)
+          }
+        }
+      );
+      
+      if (nextWinnerUpdate.modifiedCount > 0) {
+        console.log(`✅ [IMMEDIATE_QUEUE_ADVANCE] Rank ${nextRankToUpdate} winner can now claim immediately`);
+      }
+    }
     
     // Also update the winner's claim status in HourlyAuction
     const auction = await HourlyAuction.findOne({ hourlyAuctionId });

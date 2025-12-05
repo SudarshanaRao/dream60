@@ -834,43 +834,29 @@ exports.verifyPrizeClaimPayment = async (req, res) => {
     );
 
     console.log(`✅ [PRIZE_CLAIM_UPDATE] Marked ${expireResult.modifiedCount} other winners as EXPIRED`);
-
-    // 4. Update winner's claim status in HourlyAuction
-    const auction = await HourlyAuction.findOne({ hourlyAuctionId: payment.auctionId });
-    if (auction && auction.winners) {
-      const winnerIndex = auction.winners.findIndex(w => w.playerId === payment.userId);
-      if (winnerIndex !== -1) {
-        auction.winners[winnerIndex].isPrizeClaimed = true;
-        auction.winners[winnerIndex].prizeClaimedAt = new Date();
-        await auction.save();
-        
-        console.log(`🎁 [PRIZE_CLAIM] Updated winner status in HourlyAuction`);
-      }
-    }
-
-    // 5. Update winner's claim status in DailyAuction config
-    const dailyAuction = await DailyAuction.findOne({ 
-      dailyAuctionId: auction.dailyAuctionId 
-    });
     
-    if (dailyAuction) {
-      const configIndex = dailyAuction.dailyAuctionConfig.findIndex(
-        config => config.hourlyAuctionId === payment.auctionId
+    // ✅ NEW: Immediately update currentEligibleRank to next rank (no delay)
+    // This allows the next winner to claim immediately without waiting for cron job
+    const nextRankToUpdate = updatedEntry.finalRank + 1;
+    if (nextRankToUpdate <= 3) {
+      const nextWinnerUpdate = await AuctionHistory.updateOne(
+        {
+          hourlyAuctionId: payment.auctionId,
+          finalRank: nextRankToUpdate,
+          isWinner: true,
+          prizeClaimStatus: 'PENDING' // Only update if still pending
+        },
+        {
+          $set: {
+            currentEligibleRank: nextRankToUpdate,
+            claimWindowStartedAt: new Date(), // Start their 30-minute window NOW
+            claimDeadline: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes from now
+          }
+        }
       );
       
-      if (configIndex !== -1 && dailyAuction.dailyAuctionConfig[configIndex].topWinners) {
-        const winnerIndex = dailyAuction.dailyAuctionConfig[configIndex].topWinners.findIndex(
-          w => w.playerId === payment.userId
-        );
-        
-        if (winnerIndex !== -1) {
-          dailyAuction.dailyAuctionConfig[configIndex].topWinners[winnerIndex].isPrizeClaimed = true;
-          dailyAuction.dailyAuctionConfig[configIndex].topWinners[winnerIndex].prizeClaimedAt = new Date();
-          dailyAuction.markModified('dailyAuctionConfig');
-          await dailyAuction.save();
-          
-          console.log(`🎁 [PRIZE_CLAIM] Updated winner status in DailyAuction config`);
-        }
+      if (nextWinnerUpdate.modifiedCount > 0) {
+        console.log(`✅ [IMMEDIATE_QUEUE_ADVANCE] Rank ${nextRankToUpdate} winner can now claim immediately (no delay)`);
       }
     }
 
