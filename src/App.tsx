@@ -1437,6 +1437,12 @@ export default function App() {
       };
     });
 
+    // ✅ NEW: Trigger immediate refetch of auction data after payment
+    console.log('💳 Payment successful - triggering immediate auction data refresh');
+    setTimeout(() => {
+      setForceRefetchTrigger(prev => prev + 1);
+    }, 1500); // Wait 1.5 seconds for backend to process
+
     setShowEntrySuccess(null);
   };
 
