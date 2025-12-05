@@ -1,6 +1,7 @@
 // src/controllers/userController.js
 const bcrypt = require('bcryptjs');
 const userRepo = require('../repositories/userRepository');
+const AuctionHistory = require('../models/AuctionHistory');
 
 /**
  * Removes sensitive fields like password from the user object.
@@ -83,6 +84,7 @@ const getMe = async (req, res) => {
 /**
  * GET /auth/me/profile
  * Requires user_id
+ * Returns user profile with auction statistics (totalWins, totalAmountSpent, totalAmountWon)
  */
 const getProfile = async (req, res) => {
   try {
@@ -92,7 +94,34 @@ const getProfile = async (req, res) => {
     const user = await userRepo.getUserById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    return res.json({ success: true, profile: sanitizeUser(user) });
+    // ✅ Fetch auction statistics from AuctionHistory
+    let auctionStats = {
+      totalWins: 0,
+      totalAmountSpent: 0,
+      totalAmountWon: 0,
+    };
+
+    try {
+      const stats = await AuctionHistory.getUserStats(userId);
+      if (stats) {
+        auctionStats = {
+          totalWins: stats.totalWins || 0,
+          totalAmountSpent: stats.totalSpent || 0,
+          totalAmountWon: stats.totalWon || 0,
+        };
+      }
+    } catch (statsError) {
+      console.error('Error fetching auction stats:', statsError);
+      // Continue with default values if stats fetch fails
+    }
+
+    // ✅ Combine user profile with auction stats
+    const profileData = {
+      ...sanitizeUser(user),
+      ...auctionStats,
+    };
+
+    return res.json({ success: true, data: profileData, profile: profileData });
   } catch (err) {
     console.error('getProfile error:', err);
     if (err.name === 'CastError') return res.status(400).json({ success: false, message: 'Invalid user id format' });
