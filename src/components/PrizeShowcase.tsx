@@ -80,6 +80,8 @@ interface PrizeShowcaseProps {
 export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUserParticipationChange, isLoggedIn, serverTime, liveAuctionData, isLoadingLiveAuction = true }: PrizeShowcaseProps) {
   const [liveAuctions, setLiveAuctions] = useState<AuctionConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // ✅ NEW: Track if this is the initial load
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const [boxAFee, setBoxAFee] = useState<number>(0);
   const [boxBFee, setBoxBFee] = useState<number>(0);
   const { initiatePayment, loading: paymentLoading } = useRazorpayPayment();
@@ -162,19 +164,25 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
     return fallbackEndTime;
   };
 
-  // ✅ NEW: Process live auction data from parent
+  // ✅ UPDATED: Process live auction data from parent - only show loading on initial load
   useEffect(() => {
-    // ✅ CRITICAL FIX: Check loading state first - don't show "No Live Auction" while still loading
-    if (isLoadingLiveAuction) {
+    // ✅ CRITICAL FIX: Only show loading state on initial load, not on subsequent polls
+    if (isLoadingLiveAuction && !hasInitiallyLoaded) {
       setIsLoading(true);
       setNoLiveAuction(false);
+      return;
+    }
+
+    // ✅ FIX: If data is loading but we already have data, just wait for new data
+    if (isLoadingLiveAuction && hasInitiallyLoaded) {
+      // Don't change any state - keep showing existing data
       return;
     }
 
     // ✅ FIX: Don't clear state if data is temporarily undefined during refetch
     if (!liveAuctionData) {
       // Only show "No Live Auction" if we don't have existing data
-      if (liveAuctions.length === 0) {
+      if (liveAuctions.length === 0 && hasInitiallyLoaded) {
         setNoLiveAuction(true);
         setIsLoading(false);
       }
@@ -184,10 +192,11 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
     console.log('📊 [PRIZE SHOWCASE] Received live auction data from parent');
     setNoLiveAuction(false);
     setIsLoading(false);
+    setHasInitiallyLoaded(true); // ✅ Mark as loaded after first data
 
     const a = liveAuctionData;
 
-    // Set participants data
+    // ✅ CRITICAL FIX: Update participants count separately without affecting loading state
     const participantsList = a.participants || [];
     setParticipants(participantsList);
     setParticipantsCount(participantsList.length);
@@ -234,7 +243,7 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
     } else if (!isNewAuction) {
       console.log('⏭️ [PRIZE SHOWCASE] Same auction, keeping existing end time');
     }
-  }, [liveAuctionData, onUserParticipationChange, isLoadingLiveAuction]);
+  }, [liveAuctionData, onUserParticipationChange, isLoadingLiveAuction, hasInitiallyLoaded]);
 
   // ✅ Update join window status from serverTime
   useEffect(() => {
