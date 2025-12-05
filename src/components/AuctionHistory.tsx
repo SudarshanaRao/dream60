@@ -612,17 +612,24 @@ const AuctionCard = ({
                           }
                         </p>
                         {localAuction.claimedAt && (
-                          <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
-                            Claimed on {new Date(localAuction.claimedAt).toLocaleString('en-IN', { 
-                              month: 'short', 
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true,
-                              timeZone: 'Asia/Kolkata'
-                            })}
-                          </p>
-                        )}
+  <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
+    Claimed on {
+      (() => {
+        const date = new Date(localAuction.claimedAt);
+        const correctedDate = new Date(date.getTime() - (5.5 * 60 * 60 * 1000)); 
+        return correctedDate.toLocaleString('en-IN', { 
+          month: 'short', 
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
+        });
+      })()
+    }
+  </p>
+)}
+
                       </div>
                     </div>
                   </div>
