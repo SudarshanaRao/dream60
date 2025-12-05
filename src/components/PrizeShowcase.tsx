@@ -74,9 +74,10 @@ interface PrizeShowcaseProps {
   isLoggedIn?: boolean;
   serverTime?: ServerTime | null; // ✅ Server time from parent
   liveAuctionData?: any; // ✅ NEW: Live auction data from parent
+  isLoadingLiveAuction?: boolean; // ✅ NEW: Loading state from parent
 }
 
-export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUserParticipationChange, isLoggedIn, serverTime, liveAuctionData }: PrizeShowcaseProps) {
+export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUserParticipationChange, isLoggedIn, serverTime, liveAuctionData, isLoadingLiveAuction = true }: PrizeShowcaseProps) {
   const [liveAuctions, setLiveAuctions] = useState<AuctionConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [boxAFee, setBoxAFee] = useState<number>(0);
@@ -148,6 +149,13 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
 
   // ✅ NEW: Process live auction data from parent
   useEffect(() => {
+    // ✅ CRITICAL FIX: Check loading state first - don't show "No Live Auction" while still loading
+    if (isLoadingLiveAuction) {
+      setIsLoading(true);
+      setNoLiveAuction(false);
+      return;
+    }
+
     if (!liveAuctionData) {
       setNoLiveAuction(true);
       setIsLoading(false);
@@ -199,7 +207,7 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
       const endTime = calculateAuctionEndTime(a.rounds);
       setAuctionEndTime(endTime);
     }
-  }, [liveAuctionData, onUserParticipationChange]);
+  }, [liveAuctionData, onUserParticipationChange, isLoadingLiveAuction]);
 
   // ✅ Update join window status from serverTime
   useEffect(() => {

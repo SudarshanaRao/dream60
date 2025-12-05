@@ -621,6 +621,46 @@ export default function App() {
   const [justLoggedIn, setJustLoggedIn] = useState<boolean>(false);
   // ✅ NEW: Store live auction data to pass to PrizeShowcase
   const [liveAuctionData, setLiveAuctionData] = useState<any>(null);
+  // ✅ NEW: Track if we're currently fetching live auction data
+  const [isLoadingLiveAuction, setIsLoadingLiveAuction] = useState<boolean>(true);
+
+  // ✅ NEW: Fetch live auction data on mount (for all users, even non-logged-in)
+  useEffect(() => {
+    const fetchInitialLiveAuction = async () => {
+      setIsLoadingLiveAuction(true);
+      
+      try {
+        const response = await fetch(API_ENDPOINTS.scheduler.liveAuction);
+        
+        if (!response.ok) {
+          console.log('⚠️ No live auction available');
+          setIsLoadingLiveAuction(false);
+          return;
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          console.log('✅ Initial live auction data loaded');
+          setLiveAuctionData(result.data);
+          
+          // Update basic auction info
+          setCurrentAuction(prev => ({
+            ...prev,
+            prize: result.data.auctionName || prev.prize,
+            prizeValue: result.data.prizeValue || prev.prizeValue,
+            totalParticipants: result.data.participants?.length || prev.totalParticipants,
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching initial live auction:', error);
+      } finally {
+        setIsLoadingLiveAuction(false);
+      }
+    };
+    
+    fetchInitialLiveAuction();
+  }, []); // Run once on mount
 
   // Check for existing session on app initialization
   useEffect(() => {
@@ -899,6 +939,9 @@ export default function App() {
         setJustLoggedIn(false);
       }
       
+      // ✅ NEW: Set loading state at the start
+      setIsLoadingLiveAuction(true);
+      
       try {
         const response = await fetch(API_ENDPOINTS.scheduler.liveAuction);
         if (!response.ok) return;
@@ -1165,6 +1208,9 @@ export default function App() {
         }
       } catch (error) {
         console.error('Error fetching live auction:', error);
+      } finally {
+        // ✅ NEW: Set loading state to false after fetch completes
+        setIsLoadingLiveAuction(false);
       }
     };
 
@@ -1859,6 +1905,7 @@ export default function App() {
               isLoggedIn={!!currentUser}
               serverTime={serverTime} // ✅ Pass server time from parent
               liveAuctionData={liveAuctionData} // ✅ Pass live auction data from parent
+              isLoadingLiveAuction={isLoadingLiveAuction} // ✅ NEW: Pass loading state from parent
               onPayEntry={(_boxId, totalEntryFee) => {
                 if (!currentUser) return;
                 setShowEntrySuccess({
