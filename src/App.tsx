@@ -619,6 +619,8 @@ export default function App() {
   const [forceRefetchTrigger, setForceRefetchTrigger] = useState<number>(0);
   // ✅ NEW: Track if user just logged in to trigger immediate refresh
   const [justLoggedIn, setJustLoggedIn] = useState<boolean>(false);
+  // ✅ NEW: Store live auction data to pass to PrizeShowcase
+  const [liveAuctionData, setLiveAuctionData] = useState<any>(null);
 
   // Check for existing session on app initialization
   useEffect(() => {
@@ -907,6 +909,9 @@ export default function App() {
         if (result.success && result.data?.hourlyAuctionId) {
           setCurrentHourlyAuctionId(result.data.hourlyAuctionId);
           console.log('✅ Live auction ID set:', result.data.hourlyAuctionId);
+          
+          // ✅ NEW: Store live auction data to pass to PrizeShowcase
+          setLiveAuctionData(result.data);
           
           // ✅ Check if user has already placed bids in any rounds AND elimination status
           const liveAuction = result.data;
@@ -1853,6 +1858,7 @@ export default function App() {
               currentPrize={currentAuction as any}
               isLoggedIn={!!currentUser}
               serverTime={serverTime} // ✅ Pass server time from parent
+              liveAuctionData={liveAuctionData} // ✅ Pass live auction data from parent
               onPayEntry={(_boxId, totalEntryFee) => {
                 if (!currentUser) return;
                 setShowEntrySuccess({

@@ -72,9 +72,11 @@ interface PrizeShowcaseProps {
   onPaymentFailure?: (entryFee: number, errorMessage: string) => void;
   onUserParticipationChange?: (isParticipating: boolean) => void;
   isLoggedIn?: boolean;
+  serverTime?: ServerTime | null; // ✅ Server time from parent
+  liveAuctionData?: any; // ✅ NEW: Live auction data from parent
 }
 
-export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUserParticipationChange, isLoggedIn }: PrizeShowcaseProps) {
+export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUserParticipationChange, isLoggedIn, serverTime, liveAuctionData }: PrizeShowcaseProps) {
   const [liveAuctions, setLiveAuctions] = useState<AuctionConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [boxAFee, setBoxAFee] = useState<number>(0);
@@ -83,56 +85,17 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
   const [participantsCount, setParticipantsCount] = useState(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isUserParticipating, setIsUserParticipating] = useState(false);
-  const [serverTime, setServerTime] = useState<ServerTime | null>(null);
   const [isJoinWindowOpen, setIsJoinWindowOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
   const [auctionEndTime, setAuctionEndTime] = useState<Date | null>(null);
   const [noLiveAuction, setNoLiveAuction] = useState(false);
-  
-  // ✅ Track server time baseline for accurate countdown
-  const [serverTimeBaseline, setServerTimeBaseline] = useState<{ serverTimestamp: number; localTimestamp: number } | null>(null);
 
-  // Fetch server time
-  const fetchServerTime = async () => {
-    try {
-      const response = await fetch(API_ENDPOINTS.serverTime);
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        setServerTime(data.data);
-        
-        setServerTimeBaseline({
-          serverTimestamp: data.data.timestamp,
-          localTimestamp: Date.now()
-        });
-        
-        console.log('🕐 [SERVER TIME] Fetched server time:', {
-          serverIST: data.data.time,
-          serverDate: data.data.date,
-          serverTimestamp: data.data.timestamp,
-          localTimestamp: Date.now()
-        });
-        
-        const isWithinJoinWindow = data.data.minute < 15;
-        setIsJoinWindowOpen(isWithinJoinWindow);
-      }
-    } catch (error) {
-      console.error('Error fetching server time:', error);
-      setIsJoinWindowOpen(true);
-    }
-  };
-
-  // ✅ Calculate current server time based on baseline
+  // ✅ Calculate current server time based on passed serverTime
   const getCurrentServerTime = (): number => {
-    if (!serverTimeBaseline) {
-      console.log('⚠️ [SERVER TIME] No baseline available, using local IST time');
+    if (!serverTime) {
       return getCurrentIST().getTime();
     }
-    
-    const elapsedMs = Date.now() - serverTimeBaseline.localTimestamp;
-    const currentServerTime = serverTimeBaseline.serverTimestamp + elapsedMs;
-    
-    return currentServerTime;
+    return serverTime.timestamp;
   };
 
   // ✅ UPDATED: Calculate auction end time from rounds data - use last round's completedAt
@@ -183,103 +146,68 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
     return new Date(getCurrentServerTime() + 60 * 60 * 1000);
   };
 
-  // Fetch live auction data
-  const fetchLiveAuction = async (isInitialLoad = false) => {
-    try {
-      // Only show loading spinner on initial load, not during polling
-      if (isInitialLoad) {
-        setIsLoading(true);
-      }
-
-      const response = await fetch(
-        "https://dev-api.dream60.com/scheduler/live-auction"
-      );
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setNoLiveAuction(false);
-        const a = data.data;
-
-        // Set participants data
-        const participantsList = a.participants || [];
-        setParticipants(participantsList);
-        setParticipantsCount(participantsList.length);
-
-        // Check if current user is in participants list
-        const userId = localStorage.getItem('user_id');
-        if (userId) {
-          const userInParticipants = participantsList.some(
-            (p: Participant) => p.playerId === userId
-          );
-          setIsUserParticipating(userInParticipants);
-          
-          // Notify parent component about participation status
-          if (onUserParticipationChange) {
-            onUserParticipationChange(userInParticipants);
-          }
-        }
-
-        const liveAuction: AuctionConfig = {
-          auctionNumber: a.auctionNumber,
-          auctionId: a.hourlyAuctionId,
-          TimeSlot: a.TimeSlot,
-          auctionName: a.auctionName,
-          imageUrl: a.imageUrl,
-          prizeValue: a.prizeValue,
-          Status: a.Status,
-          FeeSplits: a.FeeSplits,
-        };
-
-        setLiveAuctions([liveAuction]);
-        setBoxAFee(a.FeeSplits?.BoxA || 0);
-        setBoxBFee(a.FeeSplits?.BoxB || 0);
-
-        // ✅ Calculate auction end time from rounds data (last round's completedAt)
-        if (a.rounds && a.rounds.length > 0) {
-          const endTime = calculateAuctionEndTime(a.rounds);
-          setAuctionEndTime(endTime);
-        }
-      } else {
-        // No live auction found
-        setNoLiveAuction(true);
-        setLiveAuctions([]);
-      }
-
-    } catch (error) {
-      console.error("Error fetching live auction:", error);
+  // ✅ NEW: Process live auction data from parent
+  useEffect(() => {
+    if (!liveAuctionData) {
       setNoLiveAuction(true);
-      setLiveAuctions([]);
-    } finally {
-      // Only update loading state on initial load
-      if (isInitialLoad) {
-        setIsLoading(false);
+      setIsLoading(false);
+      return;
+    }
+
+    console.log('📊 [PRIZE SHOWCASE] Received live auction data from parent');
+    setNoLiveAuction(false);
+    setIsLoading(false);
+
+    const a = liveAuctionData;
+
+    // Set participants data
+    const participantsList = a.participants || [];
+    setParticipants(participantsList);
+    setParticipantsCount(participantsList.length);
+
+    // Check if current user is in participants list
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+      const userInParticipants = participantsList.some(
+        (p: Participant) => p.playerId === userId
+      );
+      setIsUserParticipating(userInParticipants);
+      
+      // Notify parent component about participation status
+      if (onUserParticipationChange) {
+        onUserParticipationChange(userInParticipants);
       }
     }
-  };
 
-  // Initial fetch and setup polling
-  useEffect(() => {
-    fetchLiveAuction(true);
-    fetchServerTime();
-
-    const auctionInterval = setInterval(() => fetchLiveAuction(false), 5000);
-    const timeInterval = setInterval(fetchServerTime, 30000);
-
-    return () => {
-      clearInterval(auctionInterval);
-      clearInterval(timeInterval);
+    const liveAuction: AuctionConfig = {
+      auctionNumber: a.auctionNumber,
+      auctionId: a.hourlyAuctionId,
+      TimeSlot: a.TimeSlot,
+      auctionName: a.auctionName,
+      imageUrl: a.imageUrl,
+      prizeValue: a.prizeValue,
+      Status: a.Status,
+      FeeSplits: a.FeeSplits,
     };
-  }, []);
 
-  // Reset loading states when user logs in
-  useEffect(() => {
-    if (isLoggedIn) {
-      // Refetch data when user logs in to get fresh state
-      fetchLiveAuction(false);
-      fetchServerTime();
+    setLiveAuctions([liveAuction]);
+    setBoxAFee(a.FeeSplits?.BoxA || 0);
+    setBoxBFee(a.FeeSplits?.BoxB || 0);
+
+    // ✅ Calculate auction end time from rounds data (last round's completedAt)
+    if (a.rounds && a.rounds.length > 0) {
+      const endTime = calculateAuctionEndTime(a.rounds);
+      setAuctionEndTime(endTime);
     }
-  }, [isLoggedIn]);
+  }, [liveAuctionData, onUserParticipationChange]);
+
+  // ✅ Update join window status from serverTime
+  useEffect(() => {
+    if (!serverTime) return;
+    
+    const isWithinJoinWindow = serverTime.minute < 15;
+    setIsJoinWindowOpen(isWithinJoinWindow);
+  }, [serverTime]);
 
   // ✅ Update countdown timer every second using server time
   useEffect(() => {
@@ -338,13 +266,11 @@ export function PrizeShowcase({ currentPrize, onPayEntry, onPaymentFailure, onUs
         contact: userMobile,
       },
       (response) => {
-        // Payment success - immediately refetch to get updated data
+        // Payment success - update local state
         console.log('Payment verified successfully:', response);
         setIsUserParticipating(true);
         
-        // Refetch auction data immediately to get updated participants list
-        fetchLiveAuction();
-        
+        // Notify parent to refetch auction data
         onPayEntry?.(0, totalEntryFee);
       },
       (error) => {
