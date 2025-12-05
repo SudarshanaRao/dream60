@@ -110,6 +110,12 @@ export const usePrizeClaimPayment = () => {
           handler: async (response: PaymentResponse) => {
             try {
               // 3. Verify payment on backend
+              // ✅ CRITICAL FIX: Always use the original userDetails.upiId
+              // ✅ VALIDATION: Ensure upiId exists before sending verification
+              if (!userDetails.upiId) {
+                throw new Error('UPI ID is required for prize claim verification');
+              }
+              
               const verifyResponse = await fetch(
                 API_ENDPOINTS.razorpay.verifyPrizeClaimPayment,
                 {
@@ -122,7 +128,7 @@ export const usePrizeClaimPayment = () => {
                     razorpay_payment_id: response.razorpay_payment_id,
                     razorpay_signature: response.razorpay_signature,
                     username: actualUserDetails.name,
-                    upiId: userDetails.upiId,
+                    upiId: userDetails.upiId, // ✅ Use original userDetails.upiId (not actualUserDetails)
                   }),
                 }
               );
