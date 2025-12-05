@@ -1940,12 +1940,14 @@ export default function App() {
                     userQualificationPerRound: currentAuction.userQualificationPerRound,
                     winnersAnnounced: currentAuction.winnersAnnounced,
                     userEntryFee: (currentAuction as any).userEntryFeeFromAPI || currentAuction.boxes.find(b => b.type === 'entry' && (b as EntryBox).hasPaid)?.entryFee,
+                    hourlyAuctionId: currentHourlyAuctionId, // ✅ Pass auction ID to detect changes
                   }}
                   user={currentUser}
                   onShowLeaderboard={handleShowLeaderboard}
                   onBid={handlePlaceBid}
                   serverTime={serverTime} // ✅ Pass server time to AuctionGrid
                 />
+
                 <AuctionSchedule />
               </>
             ) : (

@@ -33,6 +33,7 @@ interface AuctionGridProps {
     userQualificationPerRound?: { [roundNumber: number]: boolean };
     winnersAnnounced?: boolean; // NEW: Early completion flag
     userEntryFee?: number; // NEW: User's entry fee amount
+    hourlyAuctionId?: string | null; // ✅ Add auction ID to detect changes
   };
   user: {
     username: string;
@@ -308,6 +309,7 @@ export function AuctionGrid({ auction, user, onBid, onShowLeaderboard, serverTim
                   isUserQualified={box.roundNumber ? auction.userQualificationPerRound?.[box.roundNumber] : undefined}
                   winnersAnnounced={auction.winnersAnnounced}
                   serverTime={serverTime}
+                  hourlyAuctionId={auction.hourlyAuctionId} 
                 />
               </motion.div>
             ))}
