@@ -1049,17 +1049,25 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
                             Claimed by {auction.claimedBy || 'Winner'}
                           </p>
                           {auction.claimedAt && (
-                            <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
-                              <Clock className="w-3 h-3" />
-                              <span>Claimed on {new Date(auction.claimedAt).toLocaleString('en-IN', { 
-                                month: 'short', 
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}</span>
-                            </div>
-                          )}
+  <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
+    <Clock className="w-3 h-3" />
+    <span>
+      {(() => {
+        const original = new Date(auction.claimedAt);
+        const adjusted = new Date(original.getTime() - 5.5 * 60 * 60 * 1000);
+
+        return `Claimed on ${adjusted.toLocaleString('en-IN', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })}`;
+      })()}
+    </span>
+  </div>
+)}
+
                         </div>
                       </div>
                     </div>
@@ -1110,17 +1118,25 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
                             Amazon voucher worth ₹{auction.prizeValue.toLocaleString('en-IN')} has been delivered
                           </p>
                           {auction.claimedAt && (
-                            <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
-                              <Clock className="w-3 h-3" />
-                              <span>Claimed on {new Date(auction.claimedAt).toLocaleString('en-IN', { 
-                                month: 'short', 
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}</span>
-                            </div>
-                          )}
+  <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
+    <Clock className="w-3 h-3" />
+    <span>
+      Claimed on {(() => {
+        const d = new Date(auction.claimedAt);
+        const adjusted = new Date(d.getTime() - 5.5 * 60 * 60 * 1000);
+
+        return adjusted.toLocaleString('en-IN', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      })()}
+    </span>
+  </div>
+)}
+
                         </div>
                       </div>
                     </div>
