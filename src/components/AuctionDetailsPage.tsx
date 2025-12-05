@@ -858,6 +858,78 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               </motion.div>
             )}
 
+            {/* ✅ NEW: Green Banner - Prize Claimed (Check claimedBy and claimedByRank) */}
+            {auction.claimedBy && auction.claimedByRank && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 sm:mb-6"
+              >
+                <Card className="border-2 border-green-300/70 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 backdrop-blur-xl shadow-2xl">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.1, 1],
+                        }}
+                        transition={{ 
+                          duration: 1.5,
+                          repeat: Infinity,
+                          repeatDelay: 0.5
+                        }}
+                        className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg"
+                      >
+                        <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                      </motion.div>
+                      <div className="flex-1">
+                        <h2 className="text-lg sm:text-xl font-bold text-green-900 flex items-center gap-2">
+                          {getRankEmoji(auction.claimedByRank)} Prize Claimed by {getRankSuffix(auction.claimedByRank)} Winner
+                        </h2>
+                        <p className="text-sm text-green-700">
+                          {auction.claimUpiId === userInfo.userEmail 
+                            ? `Congratulations! You claimed this prize`
+                            : `This prize has been claimed`
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/60 rounded-lg p-3 border border-green-200">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-green-900 mb-1">
+                            {auction.claimUpiId === userInfo.userEmail 
+                              ? 'Prize Claimed Successfully!'
+                              : 'Winner Details'
+                            }
+                          </p>
+                          <p className="text-xs text-green-700 mb-2">
+                            {auction.claimUpiId === userInfo.userEmail 
+                              ? `Amazon voucher worth ₹${auction.prizeValue.toLocaleString('en-IN')} has been sent to ${userInfo.userEmail}`
+                              : `Claimed by ${auction.claimedBy}`
+                            }
+                          </p>
+                          {auction.claimedAt && (
+                            <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
+                              <Clock className="w-3 h-3" />
+                              <span>Claimed on {new Date(auction.claimedAt).toLocaleString('en-IN', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {/* Claimed Status */}
             {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId === userInfo.userEmail && (
               <motion.div
