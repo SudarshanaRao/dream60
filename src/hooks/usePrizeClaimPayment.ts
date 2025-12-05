@@ -117,7 +117,7 @@ export const usePrizeClaimPayment = () => {
               }
               
               const verifyResponse = await fetch(
-                API_ENDPOINTS.razorpay.verifyPrizeClaimPayment,
+                API_ENDPOINTS.razorpay.prizeClaimVerifyPayment,
                 {
                   method: 'POST',
                   headers: {
