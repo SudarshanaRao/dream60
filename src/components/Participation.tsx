@@ -66,6 +66,31 @@ export function Participation({ onBack }: ParticipationProps) {
             </CardContent>
           </Card>
 
+          {/* Video Tutorial */}
+          <Card className="bg-white border-purple-200 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg md:text-xl text-purple-800">
+                📹 Watch: How to Play Dream60
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-purple-50">
+                <iframe 
+                  className="absolute inset-0 w-full h-full"
+                  src="https://www.youtube.com/embed/i4SMEaGDNq0?si=QKecVGKIUAjHk9Ob" 
+                  title="YouTube video player" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                  referrerPolicy="strict-origin-when-cross-origin" 
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <p className="text-purple-600 text-sm mt-3 text-center">
+                Watch this quick tutorial to learn how to participate and win amazing prizes!
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Steps */}
           <Card className="bg-white border-purple-200 shadow-lg">
             <CardHeader>
