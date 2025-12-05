@@ -73,7 +73,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 space-y-3 text-sm sm:text-base text-purple-700">
               <p>
-                Finpages tech private limited operates the portal in India, which offers fantasy stock trading games through the web-portal Dream60 app. and partner website(s) and mobile application(s) (collectively referred to as the "Portal") (Finpages tech private limited, its affiliates, group companies, parent and subsidiary shall collectively be referred to herein as "Dream60" or "we" or "us" "our").
+                Finpages tech private limited operates the portal in India, which offers fantasy stock trading games through the web-portal Dream60 app. and partner website(s) and mobile application(s) (collectively referred to as the "Portal") (Finpages tech private limited, its affiliates, group companies, parent and subsidiary shall collectively be referred to herein as "Dream60" or "we" or "our").
               </p>
               <p>
                 Any person utilizing the Portal ("User" or "you" or "your") or any of its features including participation in the various contests and games ("Game" or "Services") being conducted on the Portal shall be bound by the terms of this privacy policy ("Privacy Policy" or "Policy").
@@ -325,26 +325,28 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           </Card>
 
           {/* Contact Card */}
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-300 shadow-lg">
+          <Card className="bg-white border-purple-300 shadow-lg">
             <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-6 h-6 text-purple-600 mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-purple-800 mb-2">Questions About Privacy?</h3>
-                  <p className="text-sm sm:text-base text-purple-700 mb-2">
-                    Any questions or clarifications with respect to this Privacy Policy or any complaints, comments, concerns or feedback can be sent to Dream60 at:
-                  </p>
-                  <p className="text-sm text-purple-800 font-semibold mb-1">Email: support@dream60.com</p>
-                  <p className="text-sm text-purple-700 mb-1">or by normal/physical mail addressed to:</p>
-                  <div className="text-sm text-purple-800 ml-4">
-                    <p>Attn: Dream60 Team</p>
-                    <p>Finpages Tech Private Limited,</p>
-                    <p>#709, Gowra Fountainhead,</p>
-                    <p>Hitech City, Madhapur,</p>
-                    <p>Pin: 500081.</p>
-                  </div>
-                  <p className="text-sm text-purple-600 mt-3 font-semibold">Last updated: December 5, 2025</p>
+              <div>
+                <h3 className="text-2xl sm:text-3xl font-bold text-purple-700 mb-4">Contact Us:</h3>
+                <p className="text-sm sm:text-base text-gray-700 mb-3">
+                  Any questions or clarifications with respect to this Privacy Policy or any complaints, comments, concerns or feedback can be sent to Dream60 at:{' '}
+                  <a 
+                    href="mailto:support@dream60.com" 
+                    className="text-purple-700 font-semibold underline hover:text-purple-800"
+                  >
+                    support@dream60.com
+                  </a>
+                  {' '}or by normal/physical mail addressed to:
+                </p>
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded-r">
+                  <p className="text-sm sm:text-base text-gray-700 font-semibold">Attn: Dream60 Team</p>
+                  <p className="text-sm sm:text-base text-gray-700">Finpages Tech Private Limited,</p>
+                  <p className="text-sm sm:text-base text-gray-700">#709, Gowra Fountainhead,</p>
+                  <p className="text-sm sm:text-base text-gray-700">Hitech City, Madhapur,</p>
+                  <p className="text-sm sm:text-base text-gray-700">Pin: 500081.</p>
                 </div>
+                <p className="text-sm text-purple-600 mt-4 font-semibold">Last updated: December 5, 2025</p>
               </div>
             </CardContent>
           </Card>
