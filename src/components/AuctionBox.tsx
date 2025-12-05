@@ -48,6 +48,8 @@ interface AuctionBoxProps {
 export function AuctionBox({ box, onClick, isUserHighestBidder, onShowLeaderboard, userHasPaidEntry, userBidAmount, isUserQualified, winnersAnnounced, currentRound, serverTime }: AuctionBoxProps) {
   const [timeUntilOpen, setTimeUntilOpen] = useState('');
   const [showGameplayInfo, setShowGameplayInfo] = useState(false);
+  // ✅ NEW: Track box identity to detect when auction/round changes
+  const [boxIdentity, setBoxIdentity] = useState<string>('');
 
   // ✅ Helper function to format round times WITHOUT timezone conversion (display API times as-is)
   const formatRoundTime = (date: Date) => {
@@ -173,6 +175,28 @@ export function AuctionBox({ box, onClick, isUserHighestBidder, onShowLeaderboar
       proTip: roundData.focus
     };
   };
+
+  // ✅ NEW: Detect when box data changes (new auction/round) and reset state
+  useEffect(() => {
+    // Create a unique identity for this box based on its round number and timing
+    const newIdentity = `${box.roundNumber}-${box.opensAt?.getTime()}-${box.closesAt?.getTime()}`;
+    
+    // If box identity changed, this is a new auction or round update
+    if (boxIdentity && newIdentity !== boxIdentity) {
+      console.log(`🔄 [AUCTION BOX - Round ${box.roundNumber}] New auction/round detected, resetting state`, {
+        'Previous Identity': boxIdentity,
+        'New Identity': newIdentity,
+        'Round Number': box.roundNumber,
+        'Opens At': box.opensAt?.toISOString(),
+        'Closes At': box.closesAt?.toISOString()
+      });
+      
+      // Reset timer state for the new auction/round
+      setTimeUntilOpen('');
+    }
+    
+    setBoxIdentity(newIdentity);
+  }, [box.roundNumber, box.opensAt, box.closesAt]);
 
   useEffect(() => {
     if (box.type === 'round' && box.opensAt) {
