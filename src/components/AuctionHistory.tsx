@@ -615,20 +615,20 @@ const AuctionCard = ({
 
                 {/* Prize claimed by another winner */}
                 {localAuction.prizeClaimStatus === 'CLAIMED' && localAuction.claimUpiId && localAuction.claimUpiId !== userEmail && (
-                  <div className="p-2 sm:p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-300 rounded-lg">
+                  <div className="p-2 sm:p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-300 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
                         <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-[9px] sm:text-xs font-semibold text-blue-900">
-                          {getRankEmoji(localAuction.claimedByRank || 1)} Prize Already Claimed
+                        <p className="text-[9px] sm:text-xs font-semibold text-green-900">
+                          {getRankEmoji(localAuction.claimedByRank || 1)} Prize Claimed by {getRankSuffix(localAuction.claimedByRank || 1)} Winner
                         </p>
-                        <p className="text-[8px] sm:text-[10px] text-blue-700">
-                          Claimed by {getRankSuffix(localAuction.claimedByRank || 1)} place winner ({localAuction.claimedBy || 'Winner'})
+                        <p className="text-[8px] sm:text-[10px] text-green-700">
+                          Claimed by {localAuction.claimedBy || 'Winner'}
                         </p>
                         {localAuction.claimedAt && (
-                          <p className="text-[8px] sm:text-[10px] text-blue-600 mt-0.5">
+                          <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
                             Claimed on {new Date(localAuction.claimedAt).toLocaleString('en-IN', { 
                               month: 'short', 
                               day: 'numeric',

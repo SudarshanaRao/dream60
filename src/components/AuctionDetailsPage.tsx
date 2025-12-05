@@ -926,7 +926,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-4 sm:mb-6"
               >
-                <Card className="border-2 border-blue-300/70 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 backdrop-blur-xl shadow-2xl">
+                <Card className="border-2 border-green-300/70 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 backdrop-blur-xl shadow-2xl">
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center gap-3 mb-3">
                       <motion.div
@@ -938,30 +938,30 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
                           repeat: Infinity,
                           repeatDelay: 0.5
                         }}
-                        className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg"
+                        className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg"
                       >
                         <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                       </motion.div>
                       <div className="flex-1">
-                        <h2 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center gap-2">
-                          {getRankEmoji(auction.claimedByRank || 1)} Prize Already Claimed
+                        <h2 className="text-lg sm:text-xl font-bold text-green-900 flex items-center gap-2">
+                          {getRankEmoji(auction.claimedByRank || 1)} Prize Claimed by {getRankSuffix(auction.claimedByRank || 1)} Winner
                         </h2>
-                        <p className="text-sm text-blue-700">This prize has been claimed by another winner</p>
+                        <p className="text-sm text-green-700">This prize has been claimed</p>
                       </div>
                     </div>
 
-                    <div className="bg-white/60 rounded-lg p-3 border border-blue-200">
+                    <div className="bg-white/60 rounded-lg p-3 border border-green-200">
                       <div className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                        <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-blue-900 mb-1">
+                          <p className="text-sm font-semibold text-green-900 mb-1">
                             Winner Details
                           </p>
-                          <p className="text-xs text-blue-700 mb-1">
-                            Claimed by <span className="font-semibold">{getRankSuffix(auction.claimedByRank || 1)} place winner</span> ({auction.claimedBy || 'Winner'})
+                          <p className="text-xs text-green-700 mb-1">
+                            Claimed by {auction.claimedBy || 'Winner'}
                           </p>
                           {auction.claimedAt && (
-                            <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 rounded px-2 py-1 w-fit">
+                            <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
                               <Clock className="w-3 h-3" />
                               <span>Claimed on {new Date(auction.claimedAt).toLocaleString('en-IN', { 
                                 month: 'short', 
