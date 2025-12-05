@@ -669,17 +669,25 @@ const AuctionCard = ({
                           Claimed by {localAuction.claimedBy || 'Winner'}
                         </p>
                         {localAuction.claimedAt && (
-                          <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
-                            Claimed on {new Date(localAuction.claimedAt).toLocaleString('en-IN', { 
-                              month: 'short', 
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true,
-                              timeZone: 'Asia/Kolkata'
-                            })}
-                          </p>
-                        )}
+  <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
+    Claimed on {
+      (() => {
+        const d = new Date(localAuction.claimedAt);
+        const adjusted = new Date(d.getTime() - 5.5 * 60 * 60 * 1000);
+
+        return adjusted.toLocaleString('en-IN', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
+        });
+      })()
+    }
+  </p>
+)}
+
                       </div>
                     </div>
                   </div>
@@ -700,17 +708,25 @@ const AuctionCard = ({
                           Amazon voucher worth ₹{localAuction.prizeValue.toLocaleString('en-IN')} delivered
                         </p>
                         {localAuction.claimedAt && (
-                          <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
-                            Claimed on {new Date(localAuction.claimedAt).toLocaleString('en-IN', { 
-                              month: 'short', 
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true,
-                              timeZone: 'Asia/Kolkata'
-                            })}
-                          </p>
-                        )}
+  <p className="text-[8px] sm:text-[10px] text-green-600 mt-0.5">
+    Claimed on {
+      (() => {
+        const d = new Date(localAuction.claimedAt);
+        const adjusted = new Date(d.getTime() - 5.5 * 60 * 60 * 1000);
+
+        return adjusted.toLocaleString('en-IN', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
+        });
+      })()
+    }
+  </p>
+)}
+
                       </div>
                     </div>
                   </div>
