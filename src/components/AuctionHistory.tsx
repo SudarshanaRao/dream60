@@ -955,6 +955,15 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
     fetchAuctionHistory();
   }, []);
 
+  // ✅ NEW: Poll for auction history updates every 5 seconds for real-time claim status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAuctionHistory();
+    }, 5000); // Poll every 5 seconds for real-time updates
+
+    return () => clearInterval(interval);
+  }, [user.id]);
+
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

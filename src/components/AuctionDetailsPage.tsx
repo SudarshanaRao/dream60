@@ -129,7 +129,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   useEffect(() => {
     const interval = setInterval(() => {
       fetchDetailedData();
-    }, 10000); // Poll every 10 seconds
+    }, 5000); // ✅ CHANGED: Poll every 5 seconds for faster updates
 
     return () => clearInterval(interval);
   }, [auction.hourlyAuctionId, userInfo.userId]);
