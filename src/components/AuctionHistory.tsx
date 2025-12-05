@@ -135,7 +135,8 @@ const AuctionCard = ({
   tabPrefix, 
   user, 
   onViewDetails,
-  onClaimSuccess
+  onClaimSuccess,
+  userProfile // ✅ NEW: Receive user profile as prop
 }: { 
   auction: AuctionHistoryItem; 
   index: number; 
@@ -143,6 +144,7 @@ const AuctionCard = ({
   user: { id: string; username: string };
   onViewDetails: (auction: AuctionHistoryItem) => void;
   onClaimSuccess: () => void;
+  userProfile: { mobile: string; email: string; username: string } | null; // ✅ NEW: Prop type
 }) => {
   const { initiatePrizeClaimPayment, loading: globalPaymentLoading } = usePrizeClaimPayment();
   const [timeLeft, setTimeLeft] = useState('');
@@ -150,67 +152,18 @@ const AuctionCard = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [localAuction, setLocalAuction] = useState(auction);
   
-  // ✅ NEW: State for user profile data fetched from API
-  const [userProfile, setUserProfile] = useState<{
-    mobile: string;
-    email: string;
-    username: string;
-  } | null>(null);
-  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  // ✅ REMOVED: Individual fetch logic - now using prop
   
   // Get user info from localStorage as fallback
   const userId = localStorage.getItem('user_id');
-  const userEmail = localStorage.getItem('user_email') || localStorage.getItem('email') || '';
+  const userEmail = userProfile?.email || localStorage.getItem('user_email') || localStorage.getItem('email') || '';
 
   // Update local auction when prop changes
   useEffect(() => {
     setLocalAuction(auction);
   }, [auction]);
 
-  // ✅ NEW: Fetch user profile data on mount if needed
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!userId || userProfile || isFetchingProfile) return;
-      
-      setIsFetchingProfile(true);
-      
-      try {
-        const response = await fetch(`${API_ENDPOINTS.auth.me.profile}?user_id=${userId}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user profile');
-        }
-        
-        const result = await response.json();
-        console.log('✅ [AUCTION_HISTORY] User profile fetched:', result);
-        
-        if (result.success && result.profile) {
-          setUserProfile({
-            mobile: result.profile.mobile || '',
-            email: result.profile.email || userEmail,
-            username: result.profile.username || user.username,
-          });
-          
-          // ✅ Update localStorage with fresh data
-          if (result.profile.mobile) {
-            localStorage.setItem('user_mobile', result.profile.mobile);
-          }
-          if (result.profile.email) {
-            localStorage.setItem('user_email', result.profile.email);
-          }
-          if (result.profile.username) {
-            localStorage.setItem('user_name', result.profile.username);
-          }
-        }
-      } catch (error) {
-        console.error('❌ [AUCTION_HISTORY] Failed to fetch user profile:', error);
-      } finally {
-        setIsFetchingProfile(false);
-      }
-    };
-    
-    fetchUserProfile();
-  }, [userId, userProfile, isFetchingProfile]);
+  // ✅ REMOVED: useEffect for fetching user profile - no longer needed
 
   // Check if user didn't pay entry fee
   const didNotPayEntry = localAuction.boxes.slice(0, 2).some(box => box.status === 'not_participated');
@@ -954,6 +907,14 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // ✅ NEW: User profile state - fetch once for all cards
+  const [userProfile, setUserProfile] = useState<{
+    mobile: string;
+    email: string;
+    username: string;
+  } | null>(null);
+  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  
   // Stats from API (not calculated locally)
   const [stats, setStats] = useState({
     totalAuctions: 0,
@@ -969,6 +930,54 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
   const wonAuctions = history.filter(a => a.status === 'won');
   const lostAuctions = history.filter(a => a.status === 'lost');
   const { winRate, totalSpent, totalWon, netGain } = stats;
+  
+  // ✅ NEW: Fetch user profile once on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const userId = localStorage.getItem('user_id');
+      if (!userId || userProfile || isFetchingProfile) return;
+      
+      setIsFetchingProfile(true);
+      
+      try {
+        const response = await fetch(`${API_ENDPOINTS.auth.me.profile}?user_id=${userId}`);
+        
+        if (!response.ok) {
+          console.warn('❌ [AUCTION_HISTORY] Failed to fetch user profile:', response.status);
+          setIsFetchingProfile(false);
+          return;
+        }
+        
+        const result = await response.json();
+        console.log('✅ [AUCTION_HISTORY] User profile fetched once for all cards:', result);
+        
+        if (result.success && result.profile) {
+          setUserProfile({
+            mobile: result.profile.mobile || '',
+            email: result.profile.email || localStorage.getItem('user_email') || '',
+            username: result.profile.username || user.username,
+          });
+          
+          // ✅ Update localStorage with fresh data
+          if (result.profile.mobile) {
+            localStorage.setItem('user_mobile', result.profile.mobile);
+          }
+          if (result.profile.email) {
+            localStorage.setItem('user_email', result.profile.email);
+          }
+          if (result.profile.username) {
+            localStorage.setItem('user_name', result.profile.username);
+          }
+        }
+      } catch (error) {
+        console.error('❌ [AUCTION_HISTORY] Failed to fetch user profile:', error);
+      } finally {
+        setIsFetchingProfile(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user.username]); // Only depend on user.username, not on userProfile to avoid loops
   
   // ✅ Fetch auction history on mount
   useEffect(() => {
@@ -1665,6 +1674,7 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
                       user={user}
                       onViewDetails={onViewDetails}
                       onClaimSuccess={() => fetchAuctionHistory()}
+                      userProfile={userProfile}
                     />)
                   ) : (
                     <motion.div 
@@ -1700,6 +1710,7 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
                       user={user}
                       onViewDetails={onViewDetails}
                       onClaimSuccess={() => fetchAuctionHistory()}
+                      userProfile={userProfile}
                     />)
                   ) : (
                     <motion.div 
@@ -1735,6 +1746,7 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
                       user={user}
                       onViewDetails={onViewDetails}
                       onClaimSuccess={() => fetchAuctionHistory()}
+                      userProfile={userProfile}
                     />)
                   ) : (
                     <motion.div 
