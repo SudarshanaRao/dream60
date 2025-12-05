@@ -32,6 +32,17 @@ let allowedOrigins = Array.isArray(raw) ? raw : String(raw).split(',').map(s => 
 // Normalize entries (remove trailing slash)
 allowedOrigins = allowedOrigins.map(u => u.replace(/\/$/, ''));
 
+// ✅ ADD: Support for production domains
+const productionDomains = [
+  'https://www.dream60.com',
+  'https://dream60.com',
+  'http://www.dream60.com',
+  'http://dream60.com'
+];
+
+// Merge production domains with allowed origins (avoid duplicates)
+allowedOrigins = [...new Set([...allowedOrigins, ...productionDomains])];
+
 const isLocalNetwork = (hostname) => {
   return hostname === 'localhost' ||
          hostname === '127.0.0.1' ||
@@ -59,6 +70,7 @@ app.use(
 
         // 1) Exact match with configured allowedOrigins
         if (allowedOrigins.includes(incomingOrigin)) {
+          console.log(`✅ Allowing configured origin: ${incomingOrigin}`);
           return callback(null, true);
         }
 
@@ -70,15 +82,18 @@ app.use(
 
         // 3) In non-production, allow typical local-network IPs and localhost
         if (process.env.NODE_ENV !== 'production' && isLocalNetwork(hostname)) {
+          console.log(`✅ Allowing local network: ${incomingOrigin}`);
           return callback(null, true);
         }
 
         // Reject if not allowed
+        console.error(`❌ Not allowed by CORS: ${incomingOrigin}`);
         const err = new Error(`❌ Not allowed by CORS: ${incomingOrigin}`);
         err.status = 403;
         return callback(err);
       } catch (e) {
         // If origin is malformed, reject
+        console.error(`❌ Not allowed by CORS (malformed origin):`, e.message);
         return callback(new Error('❌ Not allowed by CORS (malformed origin)'));
       }
     },

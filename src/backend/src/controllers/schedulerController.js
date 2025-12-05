@@ -4,7 +4,6 @@ const MasterAuction = require('../models/masterAuction');
 const DailyAuction = require('../models/DailyAuction');
 const HourlyAuction = require('../models/HourlyAuction');
 const AuctionHistory = require('../models/AuctionHistory');
-const { autoActivateAuctions } = require('../config/scheduler');
 
 /**
  * ✅ Helper function to get current IST time
@@ -798,6 +797,9 @@ const getLiveHourlyAuction = async (req, res) => {
 const manualTriggerAutoActivate = async (req, res) => {
   try {
     console.log('🔧 [MANUAL] Triggering auto-activation logic...');
+    
+    // ✅ FIX: Import scheduler module dynamically to avoid circular dependency
+    const { autoActivateAuctions } = require('../config/scheduler');
     await autoActivateAuctions();
     
     return res.status(200).json({
