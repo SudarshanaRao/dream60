@@ -360,83 +360,32 @@ const AuctionCard = ({
         async (response) => {
           console.log('Prize claim payment successful:', response);
           
-          // Update backend with claim information
-          try {
-            const claimResponse = await fetch(API_ENDPOINTS.scheduler.updatePrizeClaim, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                hourlyAuctionId: localAuction.hourlyAuctionId,
-                userId: user.id,
-                claimedBy: currentUserName,
-                claimedByEmail: currentUserEmail,
-                claimedAt: new Date().toISOString(),
-                prizeClaimStatus: 'CLAIMED'
-              }),
-            });
-
-            if (!claimResponse.ok) {
-              const errorText = await claimResponse.text();
-              console.error('❌ Failed to update claim status:', errorText);
-              throw new Error(`Failed to update claim status: ${claimResponse.status}`);
-            }
-
-            // ✅ Check content type before parsing JSON
-            const contentType = claimResponse.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-              const claimData = await claimResponse.json();
-              console.log('✅ Prize claim data saved:', claimData);
-            } else {
-              console.warn('⚠️ Response is not JSON, but request was successful');
-            }
-            
-            // ✅ Update local state immediately - no page reload
-            setLocalAuction(prev => ({
-              ...prev,
-              prizeClaimStatus: 'CLAIMED',
-              claimedAt: Date.now(),
-              claimedBy: currentUserName,
-              claimUpiId: currentUserEmail,
-              claimedByRank: prev.finalRank
-            }));
-            
-            toast.success('🎉 Prize Claimed Successfully!', {
-              description: `Amazon voucher details will be sent to ${currentUserEmail}`,
-              duration: 5000,
-            });
-            
-            setShowClaimForm(false);
-            
-            // ✅ Refetch history data in background without reload
-            setTimeout(() => {
-              onClaimSuccess();
-            }, 1000);
-          } catch (error) {
-            console.error('Failed to update claim status:', error);
-            toast.warning('Prize claimed but status update pending', {
-              description: 'Your payment was successful. Status will update shortly.'
-            });
-            
-            // ✅ Still update local state for better UX
-            setLocalAuction(prev => ({
-              ...prev,
-              prizeClaimStatus: 'CLAIMED',
-              claimedAt: Date.now(),
-              claimedBy: currentUserName,
-              claimUpiId: currentUserEmail,
-              claimedByRank: prev.finalRank
-            }));
-            setShowClaimForm(false);
-            
-            // ✅ Try to refetch anyway
-            setTimeout(() => {
-              onClaimSuccess();
-            }, 1000);
-          }
+          // ✅ FIXED: No need to call updatePrizeClaim - verification endpoint already handles this
+          // The response from verification already contains all claim data
+          console.log('✅ Prize claim data received from verification:', response.data);
           
+          // ✅ Update local state immediately - no page reload
+          setLocalAuction(prev => ({
+            ...prev,
+            prizeClaimStatus: 'CLAIMED',
+            claimedAt: Date.now(),
+            claimedBy: currentUserName,
+            claimUpiId: currentUserEmail,
+            claimedByRank: prev.finalRank
+          }));
+          
+          toast.success('🎉 Prize Claimed Successfully!', {
+            description: `Amazon voucher details will be sent to ${currentUserEmail}`,
+            duration: 5000,
+          });
+          
+          setShowClaimForm(false);
           setIsProcessing(false);
+          
+          // ✅ Refetch history data in background without reload
+          setTimeout(() => {
+            onClaimSuccess();
+          }, 1000);
         },
         (error) => {
           console.error('Prize claim payment failed:', error);
