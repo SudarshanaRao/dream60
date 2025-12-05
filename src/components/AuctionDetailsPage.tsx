@@ -122,13 +122,70 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
 
   // ✅ Fetch detailed data on mount
   useEffect(() => {
-    fetchDetailedData();
+    fetchDetailedData(true); // Initial load with loading state
   }, []);
+
+  // ✅ UPDATED: Poll for auction status updates - silent background refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDetailedData(false); // Background refresh without loading state
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [auction.hourlyAuctionId, userInfo.userId]);
+
+  // ✅ UPDATED: Add isInitialLoad parameter to control loading state
+  const fetchDetailedData = async (isInitialLoad = false) => {
+    if (!auction.hourlyAuctionId || !userInfo.userId) {
+      if (isInitialLoad) setIsLoading(false);
+      return;
+    }
+
+    try {
+      // ✅ Only show loading spinner on initial load
+      if (isInitialLoad) {
+        setIsLoading(true);
+      }
+      
+      const queryString = buildQueryString({
+        hourlyAuctionId: auction.hourlyAuctionId,
+        userId: userInfo.userId
+      });
+      const response = await fetch(
+        `${API_ENDPOINTS.scheduler.auctionDetails}${queryString}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch auction details');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setDetailedData(result.data);
+        
+        // ✅ Only log on initial load to reduce console spam
+        if (isInitialLoad) {
+          console.log('✅ Auction details loaded:', result.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching detailed auction data:', error);
+      // ✅ Only show error toast on initial load
+      if (isInitialLoad) {
+        toast.error('Could not load detailed auction information');
+      }
+    } finally {
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
+    }
+  };
 
   // ✅ NEW: Poll for auction status updates every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchDetailedData();
+      fetchDetailedData(false);
     }, 5000); // ✅ CHANGED: Poll every 5 seconds for faster updates
 
     return () => clearInterval(interval);
@@ -247,49 +304,6 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  // Fetch detailed auction data from API
-  const fetchDetailedData = async () => {
-    if (!auction.hourlyAuctionId || !userInfo.userId) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const queryString = buildQueryString({
-        hourlyAuctionId: auction.hourlyAuctionId,
-        userId: userInfo.userId
-      });
-      const response = await fetch(
-        `${API_ENDPOINTS.scheduler.auctionDetails}${queryString}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch auction details');
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        setDetailedData(result.data);
-        console.log('✅ Auction details loaded:', result.data);
-      }
-    } catch (error) {
-      console.error('Error fetching detailed auction data:', error);
-      toast.error('Could not load detailed auction information');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Reset form and processing state when prize claim status changes
-  useEffect(() => {
-    if (auction.prizeClaimStatus !== 'PENDING') {
-      setShowClaimForm(false);
-      setIsProcessing(false);
-    }
-  }, [auction.prizeClaimStatus]);
 
   // Countdown timer for prize claim
   useEffect(() => {

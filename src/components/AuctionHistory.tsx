@@ -1009,14 +1009,14 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
   
   // ✅ Fetch auction history on mount
   useEffect(() => {
-    fetchAuctionHistory();
+    fetchAuctionHistory(true); // Initial load with loading state
   }, []);
 
-  // ✅ NEW: Poll for auction history updates every 5 seconds for real-time claim status
+  // ✅ UPDATED: Poll for auction history updates - silent background refresh
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchAuctionHistory();
-    }, 5000); // Poll every 5 seconds for real-time updates
+      fetchAuctionHistory(false); // Background refresh without loading state
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [user.id]);
@@ -1026,9 +1026,12 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Fetch auction history from API
-  const fetchAuctionHistory = async () => {
-    setIsLoading(true);
+  // ✅ UPDATED: Add isInitialLoad parameter to control loading state
+  const fetchAuctionHistory = async (isInitialLoad = false) => {
+    // ✅ Only show loading spinner on initial load
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
     setError(null);
     
     try {
@@ -1041,15 +1044,20 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
       
       const result = await response.json();
       
-      console.log('📊 [AUCTION_HISTORY] API Response:', result);
+      // ✅ Only log on initial load to reduce console spam
+      if (isInitialLoad) {
+        console.log('📊 [AUCTION_HISTORY] API Response:', result);
+      }
       
       if (result.success && result.data) {
         const transformedHistory: AuctionHistoryItem[] = result.data.map((auction: any) => {
-          // Debug log for totalParticipants
-          console.log(`🔍 [AUCTION_HISTORY] Auction ${auction.auctionName}:`, {
-            'totalParticipants from API': auction.totalParticipants,
-            'Full auction data': auction
-          });
+          // ✅ Only log on initial load to reduce console spam
+          if (isInitialLoad) {
+            console.log(`🔍 [AUCTION_HISTORY] Auction ${auction.auctionName}:`, {
+              'totalParticipants from API': auction.totalParticipants,
+              'Full auction data': auction
+            });
+          }
           
           return {
             id: auction.hourlyAuctionId,
@@ -1097,7 +1105,10 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
           };
         });
         
-        console.log('✅ [AUCTION_HISTORY] Transformed History:', transformedHistory);
+        // ✅ Only log on initial load to reduce console spam
+        if (isInitialLoad) {
+          console.log('✅ [AUCTION_HISTORY] Transformed History:', transformedHistory);
+        }
         
         setHistory(transformedHistory);
         
@@ -1117,11 +1128,16 @@ export function AuctionHistory({ user, onBack, onViewDetails }: AuctionHistoryPr
       }
     } catch (err) {
       console.error('Error fetching auction history:', err);
-      setError('Failed to load auction history. Please try again later.');
-      toast.error('Failed to load auction history');
+      // ✅ Only show error toast on initial load
+      if (isInitialLoad) {
+        setError('Failed to load auction history. Please try again later.');
+        toast.error('Failed to load auction history');
+      }
       setHistory([]);
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
     }
   };
 
