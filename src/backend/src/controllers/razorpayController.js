@@ -813,6 +813,28 @@ exports.verifyPrizeClaimPayment = async (req, res) => {
       claimData
     );
 
+    // ✅ NEW: Mark ALL other pending winners' claims as EXPIRED
+    // This ensures other winners in queue know the prize has been claimed
+    const expireResult = await AuctionHistory.updateMany(
+      { 
+        hourlyAuctionId: payment.auctionId, 
+        prizeClaimStatus: 'PENDING',
+        userId: { $ne: payment.userId } // Exclude the current user who just claimed
+      },
+      {
+        $set: {
+          prizeClaimStatus: 'EXPIRED',
+          claimNotes: `Prize claimed by rank ${updatedEntry.finalRank} winner (${updatedEntry.username})`,
+          // ✅ NEW: Store who claimed the prize for other winners to see
+          claimedBy: updatedEntry.username,
+          claimedByRank: updatedEntry.finalRank,
+          claimedAt: updatedEntry.claimedAt
+        }
+      }
+    );
+
+    console.log(`✅ [PRIZE_CLAIM_UPDATE] Marked ${expireResult.modifiedCount} other winners as EXPIRED`);
+
     // 4. Update winner's claim status in HourlyAuction
     const auction = await HourlyAuction.findOne({ hourlyAuctionId: payment.auctionId });
     if (auction && auction.winners) {
@@ -860,6 +882,10 @@ exports.verifyPrizeClaimPayment = async (req, res) => {
     };
 
     console.log(`✅ [PRIZE_CLAIM] Prize claimed and payment verified for ${username} (${getRankSuffix(updatedEntry.finalRank)} place)`);
+    console.log(`     💰 Final round bid amount: ₹${updatedEntry.lastRoundBidAmount || 0}`);
+    console.log(`     💳 UPI ID: ${updatedEntry.claimUpiId}`);
+    console.log(`     🎯 Prize amount: ₹${updatedEntry.prizeAmountWon || 0}`);
+    console.log(`     ⏰ Other ${expireResult.modifiedCount} winner(s) marked as EXPIRED`);
 
     return res.status(200).json({
       success: true,
@@ -872,6 +898,8 @@ exports.verifyPrizeClaimPayment = async (req, res) => {
         prizeAmount: updatedEntry.prizeAmountWon,
         upiId: updatedEntry.claimUpiId,
         claimedAt: updatedEntry.claimedAt,
+        claimedBy: updatedEntry.username,
+        claimedByRank: updatedEntry.finalRank,
         username,
       },
     });

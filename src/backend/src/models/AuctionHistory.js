@@ -208,6 +208,20 @@ const auctionHistorySchema = new mongoose.Schema(
       default: null,
     },
     
+    // ✅ NEW: Track who actually claimed the prize (for other winners to see)
+    claimedBy: {
+      type: String,
+      default: null,
+    },
+    
+    // ✅ NEW: Track which rank claimed the prize (for other winners to see)
+    claimedByRank: {
+      type: Number,
+      default: null,
+      min: 1,
+      max: 3,
+    },
+    
     // ========== PRIORITY CLAIM SYSTEM (NEW) ==========
     
     // Which rank (1, 2, or 3) is currently eligible to claim
@@ -474,6 +488,8 @@ auctionHistorySchema.statics.submitPrizeClaim = async function(userId, hourlyAuc
           prizeClaimStatus: 'CLAIMED',
           claimedAt: now, // ✅ Use IST time
           claimNotes: `Prize claimed successfully (Rank ${entry.finalRank})`,
+          claimedBy: entry.username,
+          claimedByRank: entry.finalRank,
         },
       },
       { new: true }
