@@ -44,8 +44,8 @@ interface AuctionDetailsData {
   isWinner?: boolean;
   finalRank?: number;
   prizeClaimStatus?: 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'NOT_APPLICABLE';
-  claimDeadline?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
-  claimedAt?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
+  claimDeadline?: number; // ✅ STORE as UTC timestamp (milliseconds)
+  claimedAt?: number; // ✅ STORE as UTC timestamp (milliseconds)
   lastRoundBidAmount?: number;
   prizeAmountWon?: number;
   winnersAnnounced?: boolean;
@@ -54,7 +54,7 @@ interface AuctionDetailsData {
   claimedByRank?: number;
   // NEW: Priority claim fields
   currentEligibleRank?: number; // Which rank (1, 2, or 3) can currently claim
-  claimWindowStartedAt?: number; // ✅ CHANGED: Store as UTC timestamp (milliseconds)
+  claimWindowStartedAt?: number; // ✅ STORE as UTC timestamp (milliseconds)
 }
 
 interface AuctionDetailsPageProps {
@@ -76,8 +76,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   const [userInfo, setUserInfo] = useState({
     userId: localStorage.getItem('user_id') || '',
     userName: localStorage.getItem('user_name') || 'User',
-    userEmail: localStorage.getItem('user_email') || localStorage.getItem('email') || '',
-    userMobile: localStorage.getItem('user_mobile') || localStorage.getItem('mobile') || '',
+    userEmail: localStorage.getItem('user_email') || '',
+    userMobile: localStorage.getItem('user_mobile') || '',
   });
 
   // ✅ Fetch user data from backend if mobile is missing
@@ -125,13 +125,54 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
     fetchDetailedData();
   }, []);
 
+  // ✅ NEW: Poll for auction status updates every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDetailedData();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [auction.hourlyAuctionId, userInfo.userId]);
+
+  // ✅ NEW: Check if prize has been claimed by checking hourly auction winners array
+  const checkPrizeClaimedStatus = () => {
+    if (!detailedData || !detailedData.hourlyAuction) return null;
+    
+    const hourlyAuction = detailedData.hourlyAuction;
+    
+    // Check if there are any winners who have claimed
+    if (hourlyAuction.winners && hourlyAuction.winners.length > 0) {
+      const claimedWinner = hourlyAuction.winners.find((w: any) => w.isPrizeClaimed);
+      
+      if (claimedWinner) {
+        return {
+          claimed: true,
+          claimedByRank: claimedWinner.rank,
+          claimedBy: claimedWinner.playerUsername,
+          claimedAt: claimedWinner.prizeClaimedAt,
+        };
+      }
+    }
+    
+    return null;
+  };
+
   // ✅ NEW: Determine if current user is eligible to claim based on priority system
   const isCurrentlyEligibleToClaim = () => {
     if (!auction.isWinner || auction.prizeClaimStatus !== 'PENDING') return false;
     
-    // ✅ NEW: If someone with better rank already claimed, not user's turn anymore
+    // ✅ NEW: Check if someone already claimed from overall auction status
+    const claimStatus = checkPrizeClaimedStatus();
+    if (claimStatus && claimStatus.claimed) {
+      // If someone with better rank claimed, not user's turn
+      if (auction.finalRank && claimStatus.claimedByRank < auction.finalRank) {
+        return false;
+      }
+    }
+    
+    // ✅ ALSO check auction object for claim data (from user's participation record)
     if (auction.claimedByRank && auction.finalRank && auction.claimedByRank < auction.finalRank) {
-      return false; // Prize already claimed by someone with better rank
+      return false;
     }
     
     // ✅ STRICT MODE: Require currentEligibleRank to be set (no fallback for old data)
@@ -145,9 +186,18 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   const isInWaitingQueue = () => {
     if (!auction.isWinner || auction.prizeClaimStatus !== 'PENDING') return false;
     
-    // ✅ NEW: If someone with better rank already claimed, not in waiting queue anymore
+    // ✅ NEW: Check if someone already claimed from overall auction status
+    const claimStatus = checkPrizeClaimedStatus();
+    if (claimStatus && claimStatus.claimed) {
+      // If someone with better rank claimed, not in waiting queue anymore
+      if (auction.finalRank && claimStatus.claimedByRank < auction.finalRank) {
+        return false;
+      }
+    }
+    
+    // ✅ ALSO check auction object for claim data (from user's participation record)
     if (auction.claimedByRank && auction.finalRank && auction.claimedByRank < auction.finalRank) {
-      return false; // Prize already claimed by someone with better rank
+      return false;
     }
     
     // If no priority system, no queue
@@ -167,9 +217,27 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
   const isPrizeClaimedByBetterRank = () => {
     if (!auction.isWinner) return false;
     
-    // Check if someone claimed and their rank is better (lower number) than mine
+    // First check overall auction status
+    const claimStatus = checkPrizeClaimedStatus();
+    if (claimStatus && claimStatus.claimed && auction.finalRank) {
+      if (claimStatus.claimedByRank < auction.finalRank) {
+        return {
+          claimed: true,
+          ...claimStatus
+        };
+      }
+    }
+    
+    // Also check user's participation record
     if (auction.claimedByRank && auction.finalRank) {
-      return auction.claimedByRank < auction.finalRank;
+      if (auction.claimedByRank < auction.finalRank) {
+        return {
+          claimed: true,
+          claimedByRank: auction.claimedByRank,
+          claimedBy: auction.claimedBy,
+          claimedAt: auction.claimedAt
+        };
+      }
     }
     
     return false;
@@ -215,7 +283,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
     }
   };
 
-  // Reset form and processing state when claim status changes
+  // Reset form and processing state when prize claim status changes
   useEffect(() => {
     if (auction.prizeClaimStatus !== 'PENDING') {
       setShowClaimForm(false);
