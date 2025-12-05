@@ -86,7 +86,7 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
       if (!userInfo.userMobile && userInfo.userId) {
         try {
           console.log('📱 Mobile number not found in localStorage, fetching from backend...');
-          const response = await fetch(`${API_ENDPOINTS.user.profile}?userId=${userInfo.userId}`);
+          const response = await fetch(`${API_ENDPOINTS.user.profile}?user_id=${userInfo.userId}`);
           
           if (response.ok) {
             const result = await response.json();
