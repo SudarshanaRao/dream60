@@ -938,8 +938,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               </motion.div>
             )}
 
-            {/* Claimed Status */}
-            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId === userInfo.userEmail && (
+            {/* Claimed Status - Only show if claimedBy is NOT set (to avoid duplicate) */}
+            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId === userInfo.userEmail && !auction.claimedBy && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1007,8 +1007,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               </motion.div>
             )}
 
-            {/* Prize claimed by another winner */}
-            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId && auction.claimUpiId !== userInfo.userEmail && (
+            {/* Prize claimed by another winner - Only show if claimedBy is NOT set */}
+            {auction.prizeClaimStatus === 'CLAIMED' && auction.claimUpiId && auction.claimUpiId !== userInfo.userEmail && !auction.claimedBy && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1076,8 +1076,8 @@ export function AuctionDetailsPage({ auction: initialAuction, onBack }: AuctionD
               </motion.div>
             )}
 
-            {/* Prize claimed but no email info - Generic claimed banner */}
-            {auction.prizeClaimStatus === 'CLAIMED' && !auction.claimUpiId && (
+            {/* Prize claimed but no email info - Generic claimed banner - Only show if claimedBy is NOT set */}
+            {auction.prizeClaimStatus === 'CLAIMED' && !auction.claimUpiId && !auction.claimedBy && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
