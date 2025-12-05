@@ -150,15 +150,67 @@ const AuctionCard = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [localAuction, setLocalAuction] = useState(auction);
   
-  // Get user email from localStorage
+  // ✅ NEW: State for user profile data fetched from API
+  const [userProfile, setUserProfile] = useState<{
+    mobile: string;
+    email: string;
+    username: string;
+  } | null>(null);
+  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  
+  // Get user info from localStorage as fallback
   const userId = localStorage.getItem('user_id');
-  const userName = localStorage.getItem('user_name') || 'User';
   const userEmail = localStorage.getItem('user_email') || localStorage.getItem('email') || '';
 
   // Update local auction when prop changes
   useEffect(() => {
     setLocalAuction(auction);
   }, [auction]);
+
+  // ✅ NEW: Fetch user profile data on mount if needed
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!userId || userProfile || isFetchingProfile) return;
+      
+      setIsFetchingProfile(true);
+      
+      try {
+        const response = await fetch(`${API_ENDPOINTS.auth.me.profile}?user_id=${userId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+        
+        const result = await response.json();
+        console.log('✅ [AUCTION_HISTORY] User profile fetched:', result);
+        
+        if (result.success && result.profile) {
+          setUserProfile({
+            mobile: result.profile.mobile || '',
+            email: result.profile.email || userEmail,
+            username: result.profile.username || user.username,
+          });
+          
+          // ✅ Update localStorage with fresh data
+          if (result.profile.mobile) {
+            localStorage.setItem('user_mobile', result.profile.mobile);
+          }
+          if (result.profile.email) {
+            localStorage.setItem('user_email', result.profile.email);
+          }
+          if (result.profile.username) {
+            localStorage.setItem('user_name', result.profile.username);
+          }
+        }
+      } catch (error) {
+        console.error('❌ [AUCTION_HISTORY] Failed to fetch user profile:', error);
+      } finally {
+        setIsFetchingProfile(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [userId, userProfile, isFetchingProfile]);
 
   // Check if user didn't pay entry fee
   const didNotPayEntry = localAuction.boxes.slice(0, 2).some(box => box.status === 'not_participated');
@@ -287,16 +339,51 @@ const AuctionCard = ({
       return;
     }
 
-    if (!userEmail) {
-      toast.error('Email not found. Please update your profile.');
-      return;
+    // ✅ NEW: Get mobile number from fetched profile or localStorage
+    let userMobile = userProfile?.mobile || localStorage.getItem('user_mobile') || '';
+    const currentUserEmail = userProfile?.email || userEmail;
+    const currentUserName = userProfile?.username || localStorage.getItem('user_name') || user.username;
+    
+    // ✅ NEW: If no mobile number, try to fetch from API
+    if (!userMobile) {
+      toast.info('Mobile number not found. Attempting to fetch from server...');
+      
+      try {
+        const response = await fetch(`${API_ENDPOINTS.auth.me.profile}?user_id=${userId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+        
+        const result = await response.json();
+        console.log('✅ [RETRY_FETCH] User profile fetched:', result);
+        
+        if (result.success && result.profile && result.profile.mobile) {
+          userMobile = result.profile.mobile;
+          
+          // Update state and localStorage
+          setUserProfile({
+            mobile: result.profile.mobile,
+            email: result.profile.email || currentUserEmail,
+            username: result.profile.username || currentUserName,
+          });
+          localStorage.setItem('user_mobile', result.profile.mobile);
+          
+          toast.success('Mobile number retrieved! Please click "Pay Now" again.');
+          return; // Exit and let user click Pay Now again
+        } else {
+          toast.error('Mobile number not found. Please update your profile with a valid mobile number.');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to fetch mobile number:', error);
+        toast.error('Failed to retrieve mobile number. Please update your profile.');
+        return;
+      }
     }
 
-    const userName = localStorage.getItem('user_name') || user.username;
-    const userMobile = localStorage.getItem('user_mobile') || '';
-    
-    if (!userMobile) {
-      toast.error('Mobile number not found. Please update your profile.');
+    if (!currentUserEmail) {
+      toast.error('Email not found. Please update your profile.');
       return;
     }
 
@@ -309,13 +396,13 @@ const AuctionCard = ({
           hourlyAuctionId: localAuction.hourlyAuctionId,
           amount: localAuction.lastRoundBidAmount,
           currency: 'INR',
-          username: userName,
+          username: currentUserName,
         },
         {
-          name: userName,
-          email: userEmail,
-          contact: userMobile,
-          upiId: userEmail,
+          name: currentUserName,
+          email: currentUserEmail,
+          contact: userMobile, // ✅ Use fetched mobile number
+          upiId: currentUserEmail,
         },
         async (response) => {
           console.log('Prize claim payment successful:', response);
@@ -330,8 +417,8 @@ const AuctionCard = ({
               body: JSON.stringify({
                 hourlyAuctionId: localAuction.hourlyAuctionId,
                 userId: user.id,
-                claimedBy: userName,
-                claimedByEmail: userEmail,
+                claimedBy: currentUserName,
+                claimedByEmail: currentUserEmail,
                 claimedAt: new Date().toISOString(),
                 prizeClaimStatus: 'CLAIMED'
               }),
@@ -357,13 +444,13 @@ const AuctionCard = ({
               ...prev,
               prizeClaimStatus: 'CLAIMED',
               claimedAt: Date.now(),
-              claimedBy: userName,
-              claimUpiId: userEmail,
+              claimedBy: currentUserName,
+              claimUpiId: currentUserEmail,
               claimedByRank: prev.finalRank
             }));
             
             toast.success('🎉 Prize Claimed Successfully!', {
-              description: `Amazon voucher details will be sent to ${userEmail}`,
+              description: `Amazon voucher details will be sent to ${currentUserEmail}`,
               duration: 5000,
             });
             
@@ -384,8 +471,8 @@ const AuctionCard = ({
               ...prev,
               prizeClaimStatus: 'CLAIMED',
               claimedAt: Date.now(),
-              claimedBy: userName,
-              claimUpiId: userEmail,
+              claimedBy: currentUserName,
+              claimUpiId: currentUserEmail,
               claimedByRank: prev.finalRank
             }));
             setShowClaimForm(false);
